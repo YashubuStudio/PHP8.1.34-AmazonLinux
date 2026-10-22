@@ -54,4 +54,3 @@ GitHub Actions は、検証済みファイルの再照合と Release へのア�
 既存の公開済みReleaseは上書きしません
 
 PHP公式修正に伴う動作変更と11件のテスト調整は [TEST-CHANGES-ja.md](TEST-CHANGES-ja.md) に記録しています
-

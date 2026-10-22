@@ -10,7 +10,10 @@ cleanup() {
     local result=$?
     trap - EXIT
     for process in "$http_pid" "$fpm_pid" "$database_pid"; do
-        [[ -z $process ]] || kill "$process" 2>/dev/null || true
+        if [[ -n $process ]]; then
+            kill "$process" 2>/dev/null || true
+            wait "$process" 2>/dev/null || true
+        fi
     done
     cp -a /var/log/php-fpm /var/log/httpd /results/ 2>/dev/null || true
     chown -R "$RESULT_UID:$RESULT_GID" /results
@@ -29,7 +32,7 @@ yum --disablerepo='*' --enablerepo=amzn2-core localinstall -y /bundle/old/*.rpm
 mkdir -p /run/php-fpm /run/httpd /run/mariadb
 chown mysql:mysql /run/mariadb
 mysql_install_db --user=mysql --datadir=/var/lib/mysql > /results/database-init.log 2>&1
-/usr/libexec/mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking \
+setsid /usr/libexec/mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking \
     --socket=/run/mariadb/php81-test.sock --pid-file=/run/mariadb/php81-test.pid \
     > /results/database.log 2>&1 &
 database_pid=$!
@@ -61,7 +64,7 @@ php -m > /results/modules-before.txt 2> /results/cli-before.stderr
 [[ ! -s /results/cli-before.stderr ]]
 start_fpm() {
     /usr/sbin/php-fpm -t
-    /usr/sbin/php-fpm --nodaemonize > /results/fpm-"$1".log 2>&1 &
+    setsid /usr/sbin/php-fpm --nodaemonize > /results/fpm-"$1".log 2>&1 &
     fpm_pid=$!
 }
 stop_fpm() {
@@ -95,7 +98,7 @@ assert_release 1.amzn2
 oom_check 255 yes original
 start_fpm original
 /usr/sbin/httpd -t
-/usr/sbin/httpd -DFOREGROUND > /results/apache-console.log 2>&1 &
+setsid /usr/sbin/httpd -DFOREGROUND > /results/apache-console.log 2>&1 &
 http_pid=$!
 python3 /kit/tests/http-runtime.py original
 stop_fpm
