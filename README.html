@@ -15,7 +15,7 @@ main{min-width:0;background:var(--paper);border:1px solid var(--line);border-rad
 <div class="layout"><nav class="sidebar" aria-label="手順書の目次"><p class="label">CONTENTS / 目次</p><ol><li><a href="#section-1">先に確認すること</a></li><li><a href="#section-2">作業場所と順番</a></li><li><a href="#section-3">1. 手元の Docker を準備する</a></li><li><a href="#section-6">2. ZIP を手元に展開する</a></li><li><a href="#section-7">3. 手元でビルドする</a></li><li><a href="#section-10">4. GitHub Releases に完成ファイルを置く</a></li><li><a href="#section-11">5. 本番 EC2 で完成ファイルを取得する</a></li><li><a href="#section-15">6. 本番で導入前チェックする</a></li><li><a href="#section-16">7. 本番に適用する</a></li><li><a href="#section-17">8. 適用結果とサイトを確認する</a></li><li><a href="#section-18">9. 不具合時に元へ戻す</a></li><li><a href="#section-19">エラーで止まったとき</a></li><li><a href="#section-20">修正の内容と互換性</a></li><li><a href="#section-21">キット作成時の確認範囲</a></li><li><a href="#section-22">同梱ファイル</a></li><li><a href="#section-23">一次資料と固定した入力</a></li></ol><p class="note">最初の作業場所は<strong>手元のPC</strong>です。Amazon Linux 2のコンテナも、そのPC内で動かします。</p><button type="button" class="print" onclick="window.print()">印刷 / PDF保存</button></nav>
 <main><h1>PHP 8.1 セキュリティ修正：手元でビルドして EC2 に適用する</h1>
 <p>作成日：2026-10-22（日本時間）</p>
-<p><strong>コンパイルは、すべて手元の PC で行います。</strong> 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。ビルド用 EC2 や GitHub Actions は使いません。</p>
+<p><strong>コンパイルは、すべて手元の PC で行います。</strong> 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。GitHub Actions は、検証済み完成物の再照合と Release 公開に使用します。</p>
 <p>この ZIP は、手順書と実行スクリプトのセットです。<strong>コンパイル済み RPM は含まれていません。</strong> 最初に手元でビルドしてから、本番への手順に進みます。</p>
 <h2 id="section-1">先に確認すること</h2>
 <div class="table-wrap"><table>
@@ -261,7 +261,7 @@ sha256sum --check --strict php81-rpms-8.1.34-cve20261021.1.tar.gz.sha256
   set -e
   cd /home/ec2-user
   php81_archive=&#39;php81-rpms-8.1.34-cve20261021.1.tar.gz&#39;
-  php81_release_url=&#39;https://github.com/OWNER/REPO/releases/download/php81-8.1.34-cve20261021.1&#39;
+  php81_release_url=&#39;https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/releases/download/php81-8.1.34-cve20261021.1&#39;
   if [ -e &quot;$php81_archive&quot; ] || [ -e &quot;$php81_archive.sha256&quot; ]; then
     printf &#39;%s\n&#39; &#39;同名ファイルがあります。既存の内容を確認してから続行してください。&#39; &gt;&amp;2
     exit 1
@@ -298,7 +298,7 @@ scp -i /path/to/production-key.pem \
 <p>実行場所：<strong>本番 EC2／非公開リポジトリから取得</strong></p>
 <div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">cd /home/ec2-user
 python3 download-release.py \
-  --repo OWNER/REPO \
+  --repo YashubuStudio/PHP8.1.34-AmazonLinux \
   --tag php81-8.1.34-cve20261021.1 \
   --output /home/ec2-user \
   --private

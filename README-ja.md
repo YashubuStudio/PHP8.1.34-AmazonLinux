@@ -2,7 +2,7 @@
 
 作成日：2026-10-22（日本時間）
 
-**コンパイルは、すべて手元の PC で行います。** 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。ビルド用 EC2 や GitHub Actions は使いません。
+**コンパイルは、すべて手元の PC で行います。** 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。GitHub Actions は、検証済み完成物の再照合と Release 公開に使用します。
 
 この ZIP は、手順書と実行スクリプトのセットです。**コンパイル済み RPM は含まれていません。** 最初に手元でビルドしてから、本番への手順に進みます。
 
@@ -267,7 +267,7 @@ WSL で作成した `output/` を Windows のファイル選択画面で開く�
   set -e
   cd /home/ec2-user
   php81_archive='php81-rpms-8.1.34-cve20261021.1.tar.gz'
-  php81_release_url='https://github.com/OWNER/REPO/releases/download/php81-8.1.34-cve20261021.1'
+  php81_release_url='https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/releases/download/php81-8.1.34-cve20261021.1'
   if [ -e "$php81_archive" ] || [ -e "$php81_archive.sha256" ]; then
     printf '%s\n' '同名ファイルがあります。既存の内容を確認してから続行してください。' >&2
     exit 1
@@ -324,7 +324,7 @@ GitHub の fine-grained personal access token を用意します。手元のブ�
 ```bash
 cd /home/ec2-user
 python3 download-release.py \
-  --repo OWNER/REPO \
+  --repo YashubuStudio/PHP8.1.34-AmazonLinux \
   --tag php81-8.1.34-cve20261021.1 \
   --output /home/ec2-user \
   --private

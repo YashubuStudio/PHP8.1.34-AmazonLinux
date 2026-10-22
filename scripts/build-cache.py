@@ -131,6 +131,7 @@ def stamps(work):
     manifest = json.loads((work / 'compile-cache/manifest.json').read_text())
     prefix = cwd.relative_to(source).as_posix() + '/'
     restored = []
+    relink = []
     for name, metadata in manifest['files'].items():
         if not name.startswith(prefix) or not name.endswith(('.h', '.c')) or metadata['type'] != 'file':
             continue
@@ -139,9 +140,23 @@ def stamps(work):
                 and sha256(path) == metadata['sha256']):
             os.utime(str(path), ns=(metadata['atime_ns'], metadata['mtime_ns']))
             restored.append(name)
-    if restored:
+    # configure empties libs/ while the cached top-level libphp.la can still
+    # make Make consider the link target current. Invalidate that metadata
+    # target when its installed build output is missing, so normal linking
+    # recreates the output from the verified objects.
+    target = cwd / 'libphp.la'
+    key = prefix + 'libphp.la'
+    metadata = manifest['files'].get(key)
+    if (metadata and metadata['type'] == 'file' and target.is_file() and not target.is_symlink()
+            and not (cwd / 'libs/libphp.so').is_file()
+            and target.stat().st_mtime_ns == metadata['mtime_ns']
+            and sha256(target) == metadata['sha256']):
+        target.unlink()
+        relink.append(key)
+    if restored or relink:
         with (work / 'generated-input-cache.jsonl').open('a') as output:
-            output.write(json.dumps({'cwd': str(cwd), 'content_identical_inputs': restored}) + '\n')
+            output.write(json.dumps({'cwd': str(cwd), 'content_identical_inputs': restored,
+                                     'missing_output_link_targets': relink}) + '\n')
 
 
 def main():
