@@ -1,8 +1,8 @@
 PHP 8.1 セキュリティ修正・ローカルビルドキット
 作成日：2026-10-22
 
-最初に README.html をブラウザで開いてください。
-同じ内容を README-ja.md でも読めます。
+公開済みRPMをEC2へ導入する場合はREADME.mdの「AWS EC2の既存PHP 8.1を更新する」から進めます。
+自分で再ビルドする場合の詳しい手順はREADME.html / README-ja.mdにあります。
 
 【これは何か】
 手元の PC で修正済み PHP 8.1 の RPM を作り、GitHub などを通じて
@@ -16,7 +16,7 @@ Amazon Linux 2 のコンテナも、その PC 内で動かします。
 ビルド用EC2やGitHub Actionsではコンパイルしません。
 GitHub Actionsは、ローカルで検証した完成物の照合とRelease公開だけに使用します。
 
-【必要なもの】
+【再ビルドに必要なもの】
 ・手元の x86_64 Ubuntu PC、または Windows＋WSL 2 Ubuntu
 ・手元で動く Docker。一般ユーザーで docker info が成功すること
 ・目安：ビルド用 CPU 2 コア分、メモリ 4 GiB＋OS 用の余裕、空き 20 GiB 程度
@@ -24,7 +24,7 @@ GitHub Actionsは、ローカルで検証した完成物の照合とRelease公�
 ・自分で管理する GitHub リポジトリ（非公開でも可。SCP 直接転送も可）
 ・本番 EC2 に接続するいつもの SSH 接続先・鍵・sudo 権限
 
-【大まかな順番】
+【自分で再ビルドする場合の順番】
 1. 手元で Docker を準備し、この ZIP を ~/work に展開する。
 2. 手元でキットのフォルダに移動し、次を実行する。
      sha256sum --check --strict KIT-SHA256SUMS
@@ -32,7 +32,9 @@ GitHub Actionsは、ローカルで検証した完成物の照合とRelease公�
    sudo bash build-local.sh では実行しない。
 3. 成功後にvalidate-local.shで完成RPMを試験し、検証記録付きバンドルを作る（README.md参照）。
    検証済みのtar.gzとtar.gz.sha256をGitHub Releasesに置く。
-4. 本番へ完成ファイルを取得し、install-rpms.sh check を実行する。
+4. 本番へ完成ファイルを取得・検証し、README.md手順3の外部修正版コピーを作る。
+   公開済み旧Releaseの同梱スクリプトではcpioの一時展開エラーが報告されています。
+   php81-install-stage-fix.sh check を実行する。
 5. PRECHECK OK を確認し、作業時間に apply を実行する。
 6. RPM の版、PHP-FPM の稼働、既存サイトを確認する。
 
@@ -52,6 +54,13 @@ apply と rollback のときだけ、PHP-FPM を一時停止します。
 2026-10-22にAL2コンテナでビルドと全件試験を完了しました。
 PHPT: 合格10,302、スキップ7,372、既存の想定失敗8、失敗・警告0。
 完成RPMの更新・切り戻し・再適用、Apache/FPM/DB、アップロード、同時要求も確認済みです。
-本番への接続・変更、本番アプリ、systemd依存の導入手順全体は未実施です。
+2026-10-23の利用者提供報告では、外部の1行修正版で本番check/apply、8RPM更新、
+PHP-FPM再起動・基本設定検証に成功しています。
+本番サイトの操作確認・長時間稼働・本番切り戻しは未確認です。
+FPM停止→起動のログ差は約3秒で、HTTP停止時間の実測ではありません。
+報告書の原文はreports/PRODUCTION-20261023-ja.mdに保存しています。
+元バンドルとチェックサム対象スクリプトは編集せず、修正版は外部へ保存します。
+自動バックアップには外部修正版が含まれないため、別途保管します。
+同梱スクリプトの恒久修正・再検証・修正版Releaseの配布は別途必要です。
 詳細と証拠はVALIDATION-ja.mdに記録しています。
 途中で失敗した場合は止め、ログを確認してから続けてください。

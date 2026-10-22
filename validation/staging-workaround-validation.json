@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "recorded_utc": "2026-10-22T15:26:29.074583+00:00",
+  "environment": "Isolated AL2 x86_64 container from the preserved local build-toolchain image; no network or service operations",
+  "image": "local/php81-build-environment:20261022",
+  "bash_version": "GNU bash, version 4.2.46(2)-release (x86_64-koji-linux-gnu)",
+  "source_report_sha256": "562554beea55ba0b3d54b5ffd4220d61db4c093102b3034db23b8140f88fee4c",
+  "readme_recipe_sha256": "9e74839dd35b7bde3c6361b3f7bcaac96683e649c8d2d9d5895e8578cdcf2dd8",
+  "original_installer_sha256": "01a926c68cf83620f9808f28d62ce77dfe2a7755d28aa2f558ff585d31daef33",
+  "generated_installer_sha256": "a47b74fa7c44dbd2cec85abf2741fdb8256f6cf826b6c320d54fcd797217b90c",
+  "exactly_one_line_changed": true,
+  "original_bundle_installer_unchanged": true,
+  "existing_fixed_copy_overwrite_refused": true,
+  "staging": {
+    "exact_required_payload_file_set": true,
+    "file_count": 29,
+    "module_file_count": 27,
+    "cli_version": "PHP 8.1.34 (cli) (built: Oct 22 2026 09:41:16) (NTS)",
+    "fpm_version": "PHP 8.1.34 (fpm-fcgi) (built: Oct 22 2026 10:24:22)",
+    "shared_extensions_loaded": [
+      "mysqlnd",
+      "pdo",
+      "pdo_mysql",
+      "pdo_sqlite",
+      "mysqli",
+      "gd",
+      "mbstring",
+      "dom",
+      "simplexml",
+      "xml",
+      "xmlreader",
+      "xmlwriter"
+    ],
+    "startup_stderr_empty": true,
+    "phar_not_extracted": true
+  },
+  "limitations": [
+    "Only the documented external copy and its real RPM staging were tested locally.",
+    "No production connection, RPM transaction, systemd operation or new Release publication was performed.",
+    "The provided production report remains the evidence for production check/apply success."
+  ]
+}

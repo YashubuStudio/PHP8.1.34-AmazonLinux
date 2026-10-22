@@ -12,3 +12,5 @@ KIT-SHA256SUMS text eol=lf
 *.sha256 text eol=lf
 release-payload/archive-part-* -text
 scripts/cache-bin/make text eol=lf
+# Preserve the provided report's intentional Markdown hard line breaks.
+reports/*.md text eol=lf whitespace=-blank-at-eol

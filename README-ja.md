@@ -4,7 +4,9 @@
 
 **コンパイルは、すべて手元の PC で行います。** 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。GitHub Actions は、検証済み完成物の再照合と Release 公開に使用します。
 
-ソース ZIP は手順書と実行スクリプトのセットで、コンパイル済み RPM は含みません。**公開済み Release を使う場合は再ビルド不要です。** [EC2 の既存 PHP 8.1 を更新する手順](README.md#aws-ec2の既存php-81を更新する)から、完成 RPM の取得・検証・適用を進めてください。この文書の「1〜4」は、自分で再ビルドして配布する場合の手順です。
+ソース ZIP は手順書と実行スクリプトのセットで、コンパイル済み RPM は含みません。**公開済み Release を使う場合は再ビルド不要です。** [EC2 の既存 PHP 8.1 を更新する手順](https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/blob/main/README.md#aws-ec2の既存php-81を更新する)から、完成 RPM の取得・検証・適用を進めてください。この文書の「1〜4」は、自分で再ビルドして配布する場合の手順です。
+
+**2026-10-23追記:** [本番適用報告書](https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/blob/main/reports/PRODUCTION-20261023-ja.md)では、修正版コピーによる8RPM更新・PHP-FPM再起動・基本設定検証が成功しています。本番サイトの操作確認・長時間稼働・本番の切り戻しは未確認です。旧Releaseの同梱スクリプトには `cpio: ./usr/bin/phar: Cannot open` の問題が残るため、「6」で修正版コピーを作成して使います。アーカイブと元スクリプトはそのまま保存します。
 
 ## 先に確認すること
 
@@ -365,21 +367,28 @@ scp -i /path/to/production-key.pem \
   fi
   tar -xzf php81-rpms-8.1.34-cve20261021.1.tar.gz
   cd php81-rpms-8.1.34-cve20261021.1
-  sudo bash install-rpms.sh check "$PWD"
+  sha256sum --check --strict SHA256SUMS
 )
+```
+
+次に [READMEの手順3](https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/blob/main/README.md#3-既存環境との適合を確認する)のコマンドで、`$HOME/php81-install-stage-fix.sh`を作成します。元の一時展開行1か所を変更するコピーで、チェックサム対象のバンドルは変更しません。抽出パターンの先頭の `*` は省略しません。作成・構文確認が成功したら、修正版でチェックします。
+
+```bash
+sudo bash "$HOME/php81-install-stage-fix.sh" \
+  check "$HOME/php81-rpms-8.1.34-cve20261021.1"
 ```
 
 最後に **`PRECHECK OK`** が出たことを確認します。エラーで停止した場合は、本番適用へ進みません。
 
 チェックには、現在の８パッケージと版の一致、RPM の依存関係、旧 AWS RPM の署名、チェックサム、候補 CLI による現行の拡張・設定の読み込み、候補 PHP-FPM の構文検査が含まれます。候補 CLI の独立プロセスで、小さな PHP メモリ上限による修正後の動作確認も行います。
 
-同じ展開済みバンドルのチェックだけをやり直す場合は、次を使います。
+同じ展開済みバンドルと作成済みの修正版コピーで、更新前のチェックだけをやり直す場合は、次を使います。8RPMがすでに修正後Releaseなら、「8」の状態確認へ進みます。`check`・`apply`は元のAWS版を前提とします。
 
 実行場所：**本番 EC2／同じ完成バンドルを展開済みの場合**
 
 ```bash
-sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
-  check /home/ec2-user/php81-rpms-8.1.34-cve20261021.1
+sudo bash "$HOME/php81-install-stage-fix.sh" \
+  check "$HOME/php81-rpms-8.1.34-cve20261021.1"
 ```
 
 ## 7. 本番に適用する
@@ -389,11 +398,13 @@ sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
 実行場所：**本番 EC2／導入前チェック成功後**
 
 ```bash
-sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
-  apply /home/ec2-user/php81-rpms-8.1.34-cve20261021.1
+sudo bash "$HOME/php81-install-stage-fix.sh" \
+  apply "$HOME/php81-rpms-8.1.34-cve20261021.1"
 ```
 
 スクリプトは事前チェックをもう一度行い、設定・導入前のパッケージ一覧・切り戻し用 RPM を `/var/backups/php81-cve-日時.XXXXXXXX/` に保存してから、８個の RPM をまとめて更新します。その後、PHP-FPM の設定・起動・実行中バイナリを確認します。バックアップは root 専用です。
+
+外部で作成した`php81-install-stage-fix.sh`は、この自動バックアップには含まれないため別途保管します。バックアップ内の`bundle/install-rpms.sh`は未修正で、`check`・`apply`の一時展開問題が残ります。
 
 現在の Apache は FPM に接続する構成なので、Apache の再起動処理は入っていません。PHP 設定も編集せず、既存の `/etc/php.d/zz-cve-2026-109618-109619.ini` を保持します。本番で依存パッケージを自動更新する処理はありません。
 
@@ -405,6 +416,7 @@ sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
 rpm -q php-cli php-common php-fpm php-gd php-mbstring php-mysqlnd php-pdo php-xml
 php -v
 sudo systemctl status php-fpm --no-pager
+sudo /usr/sbin/php-fpm -t
 sudo journalctl -u php-fpm -n 50 --no-pager
 ```
 
@@ -425,11 +437,13 @@ sudo journalctl -u php-fpm -n 50 --no-pager
 実行場所：**本番 EC2／切り戻しが必要な場合だけ**
 
 ```bash
-sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
-  rollback /home/ec2-user/php81-rpms-8.1.34-cve20261021.1
+sudo bash "$HOME/php81-install-stage-fix.sh" \
+  rollback "$HOME/php81-rpms-8.1.34-cve20261021.1"
 ```
 
 適用時に表示される `/var/backups/` 内のバックアップから戻すコマンドも使えます。画面に表示された正確なパスを使用してください。設定ファイルを一律に復元する操作は行いません。
+
+`rollback`は問題の一時展開処理を通らないため、バックアップ内の元スクリプトでも利用できます。本番での切り戻しは今回の報告書では未実施です。
 
 途中で新旧の RPM が混在した場合も、各パッケージが１件ずつ登録されていれば切り戻し対象です。同名パッケージの重複登録、RPM データベースの破損などは、追加調査が必要です。自動的にあらゆる失敗を修復するスクリプトではありません。
 
@@ -445,6 +459,8 @@ sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
 | 完成アーカイブが既存のため停止 | 以前の完成物を保管し、新しいフォルダへキットを展開してやり直す |
 | GitHub の 404 / 認証失敗 | OWNER/REPO、タグ、添付したファイル名、Release の公開状態、非公開リポジトリの読み取り権限 |
 | 本番で必要なツールがない | エラーに表示されたツールだけを確認。`cpio` が不足する場合の例は下記 |
+| `cpio: ./usr/bin/phar: Cannot open` | 旧Release同梱の一時展開の問題。README手順3でバンドル外に修正版を作り、同じバンドルを指定して`check`する。元ファイルや`SHA256SUMS`は編集しない |
+| `Incomplete staged PHP payload` | 修正版の抽出パターンが `*usr/bin/php`・`*usr/sbin/php-fpm`・`*usr/lib64/php/modules/*` であることを確認。先頭の`*`を省略しない |
 | 本番のパッケージ構成が違う | 現在の `rpm -qa 'php*'` を確認。このキットの前提と違う場合は、対象を見直す |
 | 本番の依存関係・拡張・FPM 設定で停止 | エラー内容を解決して再チェック。`--force` や `--nodeps` で通さない |
 | 本番の適用開始後に停止 | FPM の状態とエラーを確認し、表示された切り戻しコマンドで復旧するか判断する |
@@ -475,7 +491,7 @@ AWS の元ソースと PHP の修正パッチを使いますが、完成した R
 
 2026-10-22、Amazon Linux 2 / x86_64の実コンテナで全6構成のコンパイルと通常のRPMビルドを完了しました。PHPTは総数17,682、合格10,302、スキップ7,372、既存の想定失敗8、失敗0、警告0です。公式修正による動作変更11件とAL2環境差4件を、独立したテスト専用パッチで調整しています。テストのスキップ・失敗の一括無視・TLS検証の無効化は追加していません。
 
-**別のクリーンなAL2環境で、完成RPMの更新・切り戻し・再適用、Apache→PHP-FPM→MariaDB、通常セッション・アップロード、8クライアント100要求、限定的なメモリ上限エラー後の復帰、設定・モジュール保持を確認しました。** 本番への接続・変更、本番アプリ、systemd依存の導入手順全体は未実施です。導入前checkと適用後のサイト確認を行ってください。詳細と証拠は検証記録を参照してください。
+**別のクリーンなAL2環境で、完成RPMの更新・切り戻し・再適用、Apache→PHP-FPM→MariaDB、通常セッション・アップロード、8クライアント100要求、限定的なメモリ上限エラー後の復帰、設定・モジュール保持を確認しました。** これは2026-10-22のローカル試験で、コンテナではsystemd依存の導入手順全体は未実施です。2026-10-23の利用者提供報告では、別ファイルの修正版で本番の`check`・`apply`が成功し、8RPM更新・FPM再起動・設定検証が確認されています。本番サイトの動作・長時間稼働・本番切り戻しは未確認です。詳細と証拠は検証記録・本番適用報告書を参照してください。
 
 [検証記録と確認範囲](VALIDATION-ja.md)
 
@@ -494,6 +510,7 @@ AWS の元ソースと PHP の修正パッチを使いますが、完成した R
 | `tests-php81-cve.patch` | 公式修正による動作変更に合わせたテスト期待値の調整 |
 | `tests-al2-environment.patch` | タイムゾーン履歴・OpenSSL版差・期限切れ証明書へのテスト専用調整 |
 | `VALIDATION-ja.md` | 全件試験・完成RPM実行試験の詳細と証拠 |
+| `reports/PRODUCTION-20261023-ja.md` | 利用者提供の本番適用報告書（原文の写し） |
 | `TEST-CHANGES-ja.md` | テスト期待値を調整した理由と範囲 |
 | `RELEASE-NOTES-ja.txt` | GitHub Release の説明欄に使う文章 |
 | `VALIDATION-ja.txt` | ビルド・実行試験の結果と未実施の範囲 |
