@@ -1,0 +1,46 @@
+{
+  "original_aws": {
+    "php": "8.1.34",
+    "openssl": "OpenSSL 1.0.2k  26 Jan 2017",
+    "openssl_num": 268443839,
+    "tzdb": "2026.5",
+    "date_output": "int(245)\narray(5) {\n  [\"ts\"]=>\n  int(2140045200)\n  [\"time\"]=>\n  string(24) \"2037-10-25T01:00:00+0000\"\n  [\"offset\"]=>\n  int(0)\n  [\"isdst\"]=>\n  bool(false)\n  [\"abbr\"]=>\n  string(3) \"GMT\"\n}\nint(238)\narray(5) {\n  [\"ts\"]=>\n  int(2140668000)\n  [\"time\"]=>\n  string(24) \"2037-11-01T06:00:00+0000\"\n  [\"offset\"]=>\n  int(-18000)\n  [\"isdst\"]=>\n  bool(false)\n  [\"abbr\"]=>\n  string(3) \"EST\"\n}\nint(147)\narray(5) {\n  [\"ts\"]=>\n  int(2140045200)\n  [\"time\"]=>\n  string(24) \"2037-10-25T01:00:00+0000\"\n  [\"offset\"]=>\n  int(3600)\n  [\"isdst\"]=>\n  bool(false)\n  [\"abbr\"]=>\n  string(3) \"CET\"\n}\n",
+    "transition_counts": [
+      "245",
+      "238",
+      "147"
+    ],
+    "openssl_error_output": "string(89) \"error:0607A082:digital envelope routines:EVP_CIPHER_CTX_set_key_length:invalid key length\"\nbool(false)\nint(15)\n\nPKEY errors\nopenssl_pkey_export_to_file opening: ok\nopenssl_pkey_export_to_file pem: ok\nopenssl_pkey_export_to_file write: ok\nopenssl_pkey_export: ok\nopenssl_pkey_get_public: ok\nopenssl_private_encrypt: ok\nopenssl_private_decrypt: no error code 04099079\nopenssl_private_decrypt: uncaught errors\n\t040A1079: error:040A1079:rsa routines:RSA_padding_check_PKCS1_OAEP_mgf1:oaep decoding error\nopenssl_private_(en|de)crypt padding: ok\nX509 errors\nopenssl_x509_export_to_file open: ok\nopenssl_x509_export_to_file pem: ok\nopenssl_x509_export_to_file write: ok\nopenssl_x509_checkpurpose purpose: ok\nCSR errors\nopenssl_csr_get_subject open: ok\nopenssl_csr_get_subjec pem: ok\n"
+  },
+  "rebuilt": {
+    "php": "8.1.34",
+    "openssl": "OpenSSL 1.0.2k  26 Jan 2017",
+    "openssl_num": 268443839,
+    "tzdb": "2026.5",
+    "date_output": "int(245)\narray(5) {\n  [\"ts\"]=>\n  int(2140045200)\n  [\"time\"]=>\n  string(24) \"2037-10-25T01:00:00+0000\"\n  [\"offset\"]=>\n  int(0)\n  [\"isdst\"]=>\n  bool(false)\n  [\"abbr\"]=>\n  string(3) \"GMT\"\n}\nint(238)\narray(5) {\n  [\"ts\"]=>\n  int(2140668000)\n  [\"time\"]=>\n  string(24) \"2037-11-01T06:00:00+0000\"\n  [\"offset\"]=>\n  int(-18000)\n  [\"isdst\"]=>\n  bool(false)\n  [\"abbr\"]=>\n  string(3) \"EST\"\n}\nint(147)\narray(5) {\n  [\"ts\"]=>\n  int(2140045200)\n  [\"time\"]=>\n  string(24) \"2037-10-25T01:00:00+0000\"\n  [\"offset\"]=>\n  int(3600)\n  [\"isdst\"]=>\n  bool(false)\n  [\"abbr\"]=>\n  string(3) \"CET\"\n}\n",
+    "transition_counts": [
+      "245",
+      "238",
+      "147"
+    ],
+    "openssl_error_output": "string(89) \"error:0607A082:digital envelope routines:EVP_CIPHER_CTX_set_key_length:invalid key length\"\nbool(false)\nint(15)\n\nPKEY errors\nopenssl_pkey_export_to_file opening: ok\nopenssl_pkey_export_to_file pem: ok\nopenssl_pkey_export_to_file write: ok\nopenssl_pkey_export: ok\nopenssl_pkey_get_public: ok\nopenssl_private_encrypt: ok\nopenssl_private_decrypt: no error code 04099079\nopenssl_private_decrypt: uncaught errors\n\t040A1079: error:040A1079:rsa routines:RSA_padding_check_PKCS1_OAEP_mgf1:oaep decoding error\nopenssl_private_(en|de)crypt padding: ok\nX509 errors\nopenssl_x509_export_to_file open: ok\nopenssl_x509_export_to_file pem: ok\nopenssl_x509_export_to_file write: ok\nopenssl_x509_checkpurpose purpose: ok\nCSR errors\nopenssl_csr_get_subject open: ok\nopenssl_csr_get_subjec pem: ok\n"
+  },
+  "test_certificates": {
+    "sni_server_ca.pem": {
+      "x509": "{\"valid_from\":\"2017-11-22T14:28:23+00:00\",\"valid_to\":\"2027-11-20T14:28:23+00:00\",\"subject\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"OU\":\"openssl\",\"CN\":\"php.net\"},\"issuer\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"CN\":\"php.net\"}}\n",
+      "private_key_blocks": 0
+    },
+    "sni_server_cs.pem": {
+      "x509": "{\"valid_from\":\"2018-01-14T18:36:12+00:00\",\"valid_to\":\"2026-04-02T18:36:12+00:00\",\"subject\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"CN\":\"cs.php.net\"},\"issuer\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"OU\":\"openssl\",\"CN\":\"php.net\"}}\n",
+      "private_key_blocks": 1
+    },
+    "sni_server_uk.pem": {
+      "x509": "{\"valid_from\":\"2018-01-14T18:36:32+00:00\",\"valid_to\":\"2026-04-02T18:36:32+00:00\",\"subject\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"CN\":\"uk.php.net\"},\"issuer\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"OU\":\"openssl\",\"CN\":\"php.net\"}}\n",
+      "private_key_blocks": 1
+    },
+    "sni_server_us.pem": {
+      "x509": "{\"valid_from\":\"2018-01-14T18:36:44+00:00\",\"valid_to\":\"2026-04-02T18:36:44+00:00\",\"subject\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"CN\":\"us.php.net\"},\"issuer\":{\"C\":\"GB\",\"ST\":\"England\",\"O\":\"PHP.net\",\"OU\":\"openssl\",\"CN\":\"php.net\"}}\n",
+      "private_key_blocks": 1
+    }
+  }
+}

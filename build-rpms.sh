@@ -41,17 +41,31 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 [[ -f "$script_dir/install-rpms.sh" ]] || die 'Keep install-rpms.sh beside build-rpms.sh.'
 test_patch_name=tests-php81-cve.patch
 test_patch_sha256=0f68687ff063de5961dd22b37cf8886df146d8a716be1a3d0fdf6f0a65580071
+environment_patch_name=tests-al2-environment.patch
+environment_patch_sha256=4fddc3acefc86035aa4dcb5d3ca54dbef1acfab57dc999732268cffa28ef1e51
 [[ -f "$script_dir/$test_patch_name" && -f "$script_dir/TEST-CHANGES-ja.md" ]] \
   || die 'Keep the test-only patch and TEST-CHANGES-ja.md beside build-rpms.sh.'
 test_patch_actual=$(sha256sum "$script_dir/$test_patch_name")
 [[ ${test_patch_actual%% *} == "$test_patch_sha256" ]] || die 'Test-only patch SHA-256 mismatch.'
+[[ -f "$script_dir/$environment_patch_name" ]] || die 'Missing AL2 environment test patch.'
+environment_patch_actual=$(sha256sum "$script_dir/$environment_patch_name")
+[[ ${environment_patch_actual%% *} == "$environment_patch_sha256" ]] || die 'AL2 environment test patch SHA-256 mismatch.'
 command -v sudo >/dev/null 2>&1 || die 'sudo is required on this build machine.'
 
 bundle_name=php81-rpms-8.1.34-cve20261021.1
 delivery_archive="$PWD/${bundle_name}.tar.gz"
 [[ ! -e "$delivery_archive" && ! -e "$delivery_archive.sha256" ]] \
   || die 'An output archive already exists in this directory. Move it aside before rebuilding.'
-build_work=$(mktemp -d "$PWD/php81-build.XXXXXXXX")
+if [[ -n ${PHP81_RESUME_WORK:-} ]]; then
+  [[ -f /.dockerenv && $PWD == /work && $PHP81_RESUME_WORK =~ ^/work/php81-build\.[A-Za-z0-9]{8}$ ]] \
+    || die 'Incremental recovery requires the original local-container work path.'
+  [[ -d $PHP81_RESUME_WORK && ! -L $PHP81_RESUME_WORK && -f $PHP81_RESUME_WORK/compile-cache/manifest.json ]] \
+    || die 'A verified completed-compilation cache is required for recovery.'
+  [[ -f $script_dir/scripts/build-cache.py ]] || die 'Missing compilation-cache verification helper.'
+  build_work=$PHP81_RESUME_WORK
+else
+  build_work=$(mktemp -d "$PWD/php81-build.XXXXXXXX")
+fi
 bundle_dir="$build_work/$bundle_name"
 rpm_topdir="$build_work/rpmbuild"
 package_release=1.amzn2.cve20261021.1
@@ -81,6 +95,13 @@ sudo rpm --import "${aws_key_files[@]}"
 
 download_checked() {
   local download_url=$1 download_path=$2 expected_sha=$3 actual_sha
+  if [[ -e $download_path || -L $download_path ]]; then
+    [[ -f $download_path && ! -L $download_path ]] || die "Invalid cached download: $download_path"
+    actual_sha=$(sha256sum "$download_path")
+    [[ ${actual_sha%% *} == "$expected_sha" ]] || die "Cached download SHA-256 mismatch: $download_path"
+    printf 'Reusing SHA-256 verified download: %s\n' "$(basename -- "$download_path")"
+    return
+  fi
   printf 'Downloading %s\n' "$(basename -- "$download_path")"
   curl --fail --location --proto '=https' --tlsv1.2 \
     --connect-timeout 20 --max-time 600 --retry 3 \
@@ -127,7 +148,9 @@ done < "$bundle_dir/sources/upstream-downloads.tsv"
 source_rpm="$bundle_dir/sources/$source_name"
 security_patch="$bundle_dir/sources/$patch_name"
 test_patch="$bundle_dir/sources/$test_patch_name"
+environment_patch="$bundle_dir/sources/$environment_patch_name"
 cp -- "$script_dir/$test_patch_name" "$test_patch"
+cp -- "$script_dir/$environment_patch_name" "$environment_patch"
 cp -- "$script_dir/TEST-CHANGES-ja.md" "$bundle_dir/sources/TEST-CHANGES-ja.md"
 [[ $(rpm -qp --qf '%{NAME} %{VERSION} %{RELEASE} %{ARCH}' "$source_rpm") == 'php 8.1.34 1.amzn2 x86_64' ]] \
   || die 'Unexpected source RPM identity.'
@@ -142,15 +165,16 @@ sudo yum-builddep --disablerepo='*' --enablerepo=amzn2-core -y "$source_rpm"
 rpm --define "_topdir $rpm_topdir" -ivh "$source_rpm"
 cp -- "$security_patch" "$rpm_topdir/SOURCES/$patch_name"
 cp -- "$test_patch" "$rpm_topdir/SOURCES/$test_patch_name"
+cp -- "$environment_patch" "$rpm_topdir/SOURCES/$environment_patch_name"
 spec_path="$rpm_topdir/SPECS/php.spec"
 cp -- "$spec_path" "$bundle_dir/sources/php.spec.aws"
 
-python3 - "$spec_path" "$patch_name" "$package_release" "$test_patch_name" <<'PY'
+python3 - "$spec_path" "$patch_name" "$package_release" "$test_patch_name" "$environment_patch_name" <<'PY'
 from pathlib import Path
 import sys
 
 spec_path = Path(sys.argv[1])
-patch_name, release, test_patch_name = sys.argv[2:]
+patch_name, release, test_patch_name, environment_patch_name = sys.argv[2:]
 text = spec_path.read_text()
 changes = (
     ('Release: 1%{?dist}%{?_trivial}%{?_buildid}\n',
@@ -158,12 +182,12 @@ changes = (
     ('# Security fixes (200+)\n',
      '# Security fixes (200+)\nPatch200: ' + patch_name + '\n'
      '# Local PHPT expectations for the official mitigation; no production code.\n'
-     'Patch201: ' + test_patch_name + '\n'),
+     'Patch201: ' + test_patch_name + '\nPatch202: ' + environment_patch_name + '\n'),
     ('# security patches\n',
-     '# security patches\n%patch200 -p1\n%patch201 -p1\n'),
+     '# security patches\n%patch200 -p1\n%patch201 -p1\n%patch202 -p1\n'),
     ('  #exit 1\n', '  exit 1\n'),
 )
-if any(marker in text for marker in ('Patch200:', '%patch200', 'Patch201:', '%patch201', '\nVendor:')):
+if any(marker in text for marker in ('Patch200:', '%patch200', 'Patch201:', '%patch201', 'Patch202:', '%patch202', '\nVendor:')):
     raise SystemExit('Unexpected existing Patch200/Patch201 or Vendor; stop for review.')
 if text.count('%if %runselftest\n') != 1:
     raise SystemExit('Unexpected test section; stop for review.')
@@ -181,6 +205,10 @@ diff -u "$bundle_dir/sources/php.spec.aws" "$bundle_dir/sources/php.spec" \
   > "$bundle_dir/logs/spec-changes.diff" || [[ $? -eq 1 ]]
 
 rpm_build_options=(--define "_topdir $rpm_topdir" --define "_smp_mflags -j$BUILD_JOBS" --define 'runselftest 1')
+if [[ -n ${PHP81_RESUME_WORK:-} ]]; then
+  rpm_build_options+=(--define "__spec_prep_post /usr/bin/python3 /kit/scripts/build-cache.py restore $build_work; exit 0")
+  printf 'Incremental recovery: verified cache restore after canonical %%prep; all normal build and test stages enabled.\n'
+fi
 rpmbuild "${rpm_build_options[@]}" -bp "$spec_path" 2>&1 | tee "$bundle_dir/logs/rpmbuild-prep.log"
 prepared_source="$rpm_topdir/BUILD/php-8.1.34"
 [[ -d $prepared_source ]] || die 'The expected prepared source directory does not exist.'
@@ -192,6 +220,10 @@ prepared_source="$rpm_topdir/BUILD/php-8.1.34"
   cd -- "$prepared_source"
   patch --batch --fuzz=0 --dry-run --reverse -p1 --input "$test_patch"
 ) 2>&1 | tee "$bundle_dir/logs/test-patch-reverse-check-before-build.log"
+(
+  cd -- "$prepared_source"
+  patch --batch --fuzz=0 --dry-run --reverse -p1 --input "$environment_patch"
+) 2>&1 | tee "$bundle_dir/logs/environment-patch-reverse-check-before-build.log"
 
 # The original AWS test suite is enabled. A failure stops here for review;
 # no application compatibility or test success is inferred from compilation alone.
@@ -204,6 +236,10 @@ rpmbuild "${rpm_build_options[@]}" -ba "$spec_path" 2>&1 | tee "$bundle_dir/logs
   cd -- "$prepared_source"
   patch --batch --fuzz=0 --dry-run --reverse -p1 --input "$test_patch"
 ) 2>&1 | tee "$bundle_dir/logs/test-patch-reverse-check-after-build.log"
+(
+  cd -- "$prepared_source"
+  patch --batch --fuzz=0 --dry-run --reverse -p1 --input "$environment_patch"
+) 2>&1 | tee "$bundle_dir/logs/environment-patch-reverse-check-after-build.log"
 
 for php_package in "${php_packages[@]}"; do
   new_rpm="$rpm_topdir/RPMS/x86_64/${php_package}-8.1.34-${package_release}.x86_64.rpm"
@@ -218,6 +254,9 @@ done
 rebuilt_srpm="$rpm_topdir/SRPMS/php-8.1.34-${package_release}.src.rpm"
 [[ -f $rebuilt_srpm ]] || die 'Missing rebuilt source RPM.'
 cp -- "$rebuilt_srpm" "$bundle_dir/sources/"
+if [[ -n ${PHP81_RESUME_WORK:-} ]]; then
+  cp -- "$build_work/cache-reuse-validation.json" "$bundle_dir/logs/compile-cache-reuse-validation.json"
+fi
 
 cat > "$bundle_dir/logs/VALIDATION.txt" <<VALIDATION
 Built on: $build_host_name
@@ -230,6 +269,9 @@ Original source and rollback RPMs: pinned SHA-256 and RPM GPG signatures verifie
 Official patch: pinned SHA-256 verified; reverse dry-run passed before and after build.
 Local test-only patch: $test_patch_name, SHA-256 $test_patch_sha256.
 The test-only patch updates 11 PHPT expectations to the official changed behavior; no additional production code, skips or XFAILs.
+AL2 environment test-only patch: $environment_patch_name, SHA-256 $environment_patch_sha256.
+Four existing PHPTs now handle current tzdata history, OpenSSL 1.0.2 error IDs and freshly generated SNI certificates with peer/name verification retained.
+Incremental recovery used: ${PHP81_RESUME_WORK:-no}; normal prep/build/install/check stages and full test suite remained enabled.
 AWS spec test suite: enabled; the original ignored-failure exit was made fatal.
 rpmbuild -ba: completed successfully, including that enabled test suite.
 Application compatibility, production traffic, and production PHP-FPM execution: NOT tested.

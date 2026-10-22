@@ -3,5 +3,11 @@
 *.md text eol=lf
 *.txt text eol=lf
 *.html text eol=lf
-*.patch text eol=lf
+# Unified-diff context requires spaces before blank lines and existing tabs.
+*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 KIT-SHA256SUMS text eol=lf
+*.php text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.sha256 text eol=lf
+release-payload/archive-part-* -text

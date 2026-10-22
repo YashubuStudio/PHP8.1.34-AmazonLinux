@@ -1,0 +1,186 @@
+# Test-only AL2 compatibility: current tzdata, OpenSSL 1.0.2 error IDs, fresh SNI certificates.
+# No PHP C code, SKIPIF, XFAIL or TLS verification policy is changed.
+
+diff --git a/ext/date/tests/bug80963.phpt b/ext/date/tests/bug80963.phpt
+--- a/ext/date/tests/bug80963.phpt
++++ b/ext/date/tests/bug80963.phpt
+@@ -4,17 +4,18 @@
+ date.timezone=UTC
+ --FILE--
+ <?php
+-$tzids = [ 'Europe/London', 'America/New_York', 'Europe/Berlin' ];
++$tzids = [ 'Europe/London' => 243, 'America/New_York' => 237, 'Europe/Berlin' => 144 ];
+ 
+-foreach ($tzids as $tzid)
++foreach ($tzids as $tzid => $minimumTransitions)
+ {
+ 	$tz = new DateTimeZone($tzid);
+ 	$t  = $tz->getTransitions();
+-	var_dump(sizeof($t), end($t));
++	// tzdata may add history; retain the original minimum and exact final transition.
++	var_dump(count($t) >= $minimumTransitions, end($t));
+ }
+ ?>
+ --EXPECT--
+-int(243)
++bool(true)
+ array(5) {
+   ["ts"]=>
+   int(2140045200)
+@@ -27,7 +28,7 @@
+   ["abbr"]=>
+   string(3) "GMT"
+ }
+-int(237)
++bool(true)
+ array(5) {
+   ["ts"]=>
+   int(2140668000)
+@@ -40,7 +41,7 @@
+   ["abbr"]=>
+   string(3) "EST"
+ }
+-int(144)
++bool(true)
+ array(5) {
+   ["ts"]=>
+   int(2140045200)
+diff --git a/ext/openssl/tests/openssl_error_string_basic.phpt b/ext/openssl/tests/openssl_error_string_basic.phpt
+--- a/ext/openssl/tests/openssl_error_string_basic.phpt
++++ b/ext/openssl/tests/openssl_error_string_basic.phpt
+@@ -96,6 +96,8 @@
+ 
+ $is_111 = OPENSSL_VERSION_NUMBER >= 0x10101000;
+ $err_pem_no_start_line = $is_111 ? '0909006C': '0906D06C';
++// OAEP MGF1 has different function numbers in OpenSSL 1.0.2 and 1.1.x.
++$err_oaep_mgf1 = OPENSSL_VERSION_NUMBER < 0x10100000 ? '040A1079' : '04099079';
+ 
+ // PKEY
+ echo "PKEY errors\n";
+@@ -119,7 +121,7 @@
+ expect_openssl_errors('openssl_private_encrypt', ['0408F090']);
+ // private decrypt with failed padding check
+ @openssl_private_decrypt("data", $crypted, $private_key_file, OPENSSL_PKCS1_OAEP_PADDING);
+-expect_openssl_errors('openssl_private_decrypt', ['04099079']);
++expect_openssl_errors('openssl_private_decrypt', [$err_oaep_mgf1]);
+ // public encrypt and decrypt with failed padding check and padding
+ @openssl_public_encrypt("data", $crypted, $public_key_file, 1000);
+ @openssl_public_decrypt("data", $crypted, $public_key_file, OPENSSL_PKCS1_OAEP_PADDING);
+diff --git a/ext/openssl/tests/sni_server.phpt b/ext/openssl/tests/sni_server.phpt
+--- a/ext/openssl/tests/sni_server.phpt
++++ b/ext/openssl/tests/sni_server.phpt
+@@ -8,14 +8,20 @@
+ ?>
+ --FILE--
+ <?php
++include 'CertificateGenerator.inc';
++$generator = new CertificateGenerator();
++$generator->saveCaCert(__DIR__ . '/sni_generated_combined_ca.pem.tmp');
++$generator->saveNewCertAsFileWithKey('cs.php.net', __DIR__ . '/sni_generated_combined_cs.pem.tmp');
++$generator->saveNewCertAsFileWithKey('uk.php.net', __DIR__ . '/sni_generated_combined_uk.pem.tmp');
++$generator->saveNewCertAsFileWithKey('us.php.net', __DIR__ . '/sni_generated_combined_us.pem.tmp');
+ $serverCode = <<<'CODE'
+     $flags = STREAM_SERVER_BIND|STREAM_SERVER_LISTEN;
+     $ctx = stream_context_create(['ssl' => [
+-        'local_cert' => __DIR__ . '/domain1.pem',
++        'local_cert' => __DIR__ . '/sni_generated_combined_cs.pem.tmp',
+         'SNI_server_certs' => [
+-            "cs.php.net" => __DIR__ . "/sni_server_cs.pem",
+-            "uk.php.net" => __DIR__ . "/sni_server_uk.pem",
+-            "us.php.net" => __DIR__ . "/sni_server_us.pem"
++            "cs.php.net" => __DIR__ . "/sni_generated_combined_cs.pem.tmp",
++            "uk.php.net" => __DIR__ . "/sni_generated_combined_uk.pem.tmp",
++            "us.php.net" => __DIR__ . "/sni_generated_combined_us.pem.tmp"
+         ]
+     ]]);
+ 
+@@ -30,7 +36,7 @@
+ $clientCode = <<<'CODE'
+     $flags = STREAM_CLIENT_CONNECT;
+     $ctxArr = [
+-        'cafile' => __DIR__ . '/sni_server_ca.pem',
++        'cafile' => __DIR__ . '/sni_generated_combined_ca.pem.tmp',
+         'capture_peer_cert' => true
+     ];
+ 
+@@ -56,6 +62,13 @@
+ include 'ServerClientTestCase.inc';
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
++--CLEAN--
++<?php
++@unlink(__DIR__ . '/sni_generated_combined_ca.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_combined_cs.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_combined_uk.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_combined_us.pem.tmp');
++?>
+ --EXPECTF--
+ string(%d) "cs.php.net"
+ string(%d) "uk.php.net"
+diff --git a/ext/openssl/tests/sni_server_key_cert.phpt b/ext/openssl/tests/sni_server_key_cert.phpt
+--- a/ext/openssl/tests/sni_server_key_cert.phpt
++++ b/ext/openssl/tests/sni_server_key_cert.phpt
+@@ -8,22 +8,29 @@
+ ?>
+ --FILE--
+ <?php
++include 'CertificateGenerator.inc';
++$generator = new CertificateGenerator();
++$generator->saveCaCert(__DIR__ . '/sni_generated_separate_ca.pem.tmp');
++$generator->saveNewCertAndKey('cs.php.net', __DIR__ . '/sni_generated_separate_cs_cert.pem.tmp', __DIR__ . '/sni_generated_separate_cs_key.pem.tmp');
++$generator->saveNewCertAndKey('uk.php.net', __DIR__ . '/sni_generated_separate_uk_cert.pem.tmp', __DIR__ . '/sni_generated_separate_uk_key.pem.tmp');
++$generator->saveNewCertAndKey('us.php.net', __DIR__ . '/sni_generated_separate_us_cert.pem.tmp', __DIR__ . '/sni_generated_separate_us_key.pem.tmp');
++file_put_contents(__DIR__ . '/sni_generated_separate_default.pem.tmp', file_get_contents(__DIR__ . '/sni_generated_separate_cs_cert.pem.tmp') . file_get_contents(__DIR__ . '/sni_generated_separate_cs_key.pem.tmp'));
+ $serverCode = <<<'CODE'
+     $flags = STREAM_SERVER_BIND|STREAM_SERVER_LISTEN;
+     $ctx = stream_context_create(['ssl' => [
+-        'local_cert' => __DIR__ . '/domain1.pem',
++        'local_cert' => __DIR__ . '/sni_generated_separate_default.pem.tmp',
+         'SNI_server_certs' => [
+             "cs.php.net" => [
+-                'local_cert' => __DIR__ . "/sni_server_cs_cert.pem",
+-                'local_pk' => __DIR__ . "/sni_server_cs_key.pem"
++                'local_cert' => __DIR__ . "/sni_generated_separate_cs_cert.pem.tmp",
++                'local_pk' => __DIR__ . "/sni_generated_separate_cs_key.pem.tmp"
+             ],
+             "uk.php.net" => [
+-                'local_cert' => __DIR__ . "/sni_server_uk_cert.pem",
+-                'local_pk' => __DIR__ . "/sni_server_uk_key.pem"
++                'local_cert' => __DIR__ . "/sni_generated_separate_uk_cert.pem.tmp",
++                'local_pk' => __DIR__ . "/sni_generated_separate_uk_key.pem.tmp"
+             ],
+             "us.php.net" => [
+-                'local_cert' => __DIR__ . "/sni_server_us_cert.pem",
+-                'local_pk' => __DIR__ . "/sni_server_us_key.pem"
++                'local_cert' => __DIR__ . "/sni_generated_separate_us_cert.pem.tmp",
++                'local_pk' => __DIR__ . "/sni_generated_separate_us_key.pem.tmp"
+             ],
+         ]
+     ]]);
+@@ -39,7 +46,7 @@
+ $clientCode = <<<'CODE'
+     $flags = STREAM_CLIENT_CONNECT;
+     $ctxArr = [
+-        'cafile' => __DIR__ . '/sni_server_ca.pem',
++        'cafile' => __DIR__ . '/sni_generated_separate_ca.pem.tmp',
+         'capture_peer_cert' => true
+     ];
+ 
+@@ -65,6 +72,17 @@
+ include 'ServerClientTestCase.inc';
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
++--CLEAN--
++<?php
++@unlink(__DIR__ . '/sni_generated_separate_ca.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_separate_cs_cert.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_separate_cs_key.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_separate_uk_cert.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_separate_uk_key.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_separate_us_cert.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_separate_us_key.pem.tmp');
++@unlink(__DIR__ . '/sni_generated_separate_default.pem.tmp');
++?>
+ --EXPECTF--
+ string(%d) "cs.php.net"
+ string(%d) "uk.php.net"

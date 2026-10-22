@@ -56,6 +56,36 @@ PHP 公式の PHP 8.1 向け最小修正は、メモリ不足時にプロセス�
 - 固定した元ソースに対して、パッチの適用 dry-run、実際の適用、逆適用 dry-run が成功したことを確認しました。`--fuzz=0` で、行のずれによる offset もありません。
 - 変更対象が上記 11 件のテストに限定されること、PHPT のセクション構成、アップロードのリクエストと既存のファイル検査が維持されることを確認しました。
 - 新しい SKIPIF / XFAIL は追加していません。
-- この文書作成環境では PHP 8.1 のコンパイルおよび変更した PHPT の実行は未実施です。テスト一式の合格を保証するものではありません。利用者のローカルビルド時にテストを実行し、追加の失敗があれば停止してログを確認します。
+- 2026-10-22、実際の AL2 コンテナでコンパイルし、変更した 11 件の PHPT が合格しました。下記の環境互換調整を含む重点 15 件も、合格 15・スキップ 0・警告 0・失敗 0 でした。全体の検証結果は `VALIDATION-ja.md` に記録します。
 
 このテスト専用パッチの SHA-256: `0f68687ff063de5961dd22b37cf8886df146d8a716be1a3d0fdf6f0a65580071`
+
+
+## AL2 の実行環境に合わせた追加のテスト調整
+
+追加パッチ: `tests-al2-environment.patch`（Patch202、SHA-256: `4fddc3acefc86035aa4dcb5d3ca54dbef1acfab57dc999732268cffa28ef1e51`）
+
+最初の全件実行は総数 17,682、合格 10,298、スキップ 7,372、既存の想定失敗 8、失敗 4、警告 0 でした。失敗を終了条件としてビルドを止め、次の原因を確認しました。
+
+- `ext/date/tests/bug80963.phpt`: AL2 の `tzdata-2026e` ではロンドン・ニューヨーク・ベルリンの履歴件数が 245 / 238 / 147 です。元の AWS 署名済み CLI と今回の CLI の出力は完全に一致し、2037 年の末尾の遷移情報も元の期待値と一致します。固定件数を、元の件数以上であることの検査に変更し、末尾の日時・タイムスタンプ・オフセット・DST・略称の厳密な検査を維持しました。[元の不具合](https://bugs.php.net/bug.php?id=80963)は末尾が1996年や2007年で切れる問題です。
+- `ext/openssl/tests/openssl_error_string_basic.phpt`: OpenSSL 1.0.2 の OAEP MGF1 関数番号は 161、1.1.x は 153 なので、同じ理由のエラーコードが `040A1079` / `04099079` になります。元の AWS CLI と今回の CLI で同じ差を確認しました。バージョンに応じた厳密なコードを検査します。参考: [OpenSSL 1.0.2 定義](https://raw.githubusercontent.com/openssl/openssl/OpenSSL_1_0_2-stable/crypto/rsa/rsa.h)、[OpenSSL 1.1.1 定義](https://raw.githubusercontent.com/openssl/openssl/OpenSSL_1_1_1-stable/include/openssl/rsaerr.h)
+- `ext/openssl/tests/sni_server.phpt` と `sni_server_key_cert.phpt`: 同梱の3枚のサーバー証明書は 2026-04-02 に期限切れになっていました。既存の `CertificateGenerator.inc` を使い、各テストで有効なCA・証明書・鍵を作成し、終了時に削除します。CA検証、接続先名の検証、3種類のSNI名の検査、鍵と証明書を分けるケースを維持します。[PHP upstreamの現行テスト](https://raw.githubusercontent.com/php/php-src/master/ext/openssl/tests/sni_server.phpt)も同じ生成用ヘルパーを使っています。
+
+PHP本体・拡張のCコード、テストのスキップ条件、XFAIL、TLSの検証設定は変更していません。新しい秘密鍵はテスト実行時だけ作成し、配布物やGitには含めません。
+
+元のファイルと追加調整後のSHA-256:
+
+| ファイル | 調整前 | 調整後 |
+|---|---|---|
+| `ext/date/tests/bug80963.phpt` | `b19a356bc40d801110fd1ac1de96c14a4ba74b4933b7cfd9273738d1033338e8` | `e0789b48e6a11bafb3df099b1eec04a0d60cf761defb8b54d2116941269b894f` |
+| `ext/openssl/tests/openssl_error_string_basic.phpt` | `fb834d847b344435ba2f36f90e09bc40850fd64f0d6bae57eb103372bb43afc5` | `9b37730d0aa32f9f2b96f7d8251a0cc005d60637e3266eea3314ad27eaeddb4b` |
+| `ext/openssl/tests/sni_server.phpt` | `6b7957619f0f0fda087c16dbcf26b113e6b5587cbed8d9534718e6508ad678ab` | `6ab54a2f4fbcba1fe64f044d398e7370ead92cf9aea49eab33ac2f9a6129d16e` |
+| `ext/openssl/tests/sni_server_key_cert.phpt` | `95afb6959a088d031b7af5e6decfb9a5030d7e9e2939bc2b2989db31ef1bb3a4` | `a290c862f699e7c8caf007f739b512255f7ebf78eb1f882d8db6549a6a549d51` |
+
+## 同じコンパイル結果を使った再試験
+
+初回の全6種類のコンパイルを保存し、`scripts/build-cache.py` で全キャッシュファイル・ツールチェーンRPM一覧・ビルド設定・絶対パスを照合します。通常の `rpmbuild -ba` でソースを展開し直してパッチを適用し、その後に検証済みのビルドディレクトリを復元します。
+
+ソース内容が一致する入力だけ元の時刻を戻し、異なる入力には新しい時刻を付けます。configure・make・install・全件テストを通常どおり実行し、必要な入力が変わった場合はMakeが再コンパイルします。`--nocheck` や `--short-circuit` は使用しません。配布するソースRPMのspecは、追加パッチを含む通常の全工程を再現できる形にします。
+
+初回の失敗ログ、元のAWS版と再ビルド版の比較、重点15件のログも完成バンドルに含めます。
