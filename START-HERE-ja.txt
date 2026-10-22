@@ -7,12 +7,14 @@ PHP 8.1 セキュリティ修正・ローカルビルドキット
 【これは何か】
 手元の PC で修正済み PHP 8.1 の RPM を作り、GitHub などを通じて
 Amazon Linux 2 の本番 EC2 に渡すための手順とスクリプトです。
-この ZIP にコンパイル済み RPM は入っていません。
+GitHubのソースZIPにはコンパイル済みRPMは入りません。完成バイナリは次のReleaseにあります。
+https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/releases/tag/php81-8.1.34-cve20261021.1
 
 【計算する場所】
 重いコンパイル処理は、すべて手元の PC で行います。
 Amazon Linux 2 のコンテナも、その PC 内で動かします。
-ビルド用 EC2 や GitHub Actions は使用しません。
+ビルド用EC2やGitHub Actionsではコンパイルしません。
+GitHub Actionsは、ローカルで検証した完成物の照合とRelease公開だけに使用します。
 
 【必要なもの】
 ・手元の x86_64 Ubuntu PC、または Windows＋WSL 2 Ubuntu
@@ -28,7 +30,8 @@ Amazon Linux 2 のコンテナも、その PC 内で動かします。
      sha256sum --check --strict KIT-SHA256SUMS
      BUILD_JOBS=2 bash build-local.sh
    sudo bash build-local.sh では実行しない。
-3. 成功したら output/ の tar.gz と tar.gz.sha256 を GitHub Releases に置く。
+3. 成功後にvalidate-local.shで完成RPMを試験し、検証記録付きバンドルを作る（README.md参照）。
+   検証済みのtar.gzとtar.gz.sha256をGitHub Releasesに置く。
 4. 本番へ完成ファイルを取得し、install-rpms.sh check を実行する。
 5. PRECHECK OK を確認し、作業時間に apply を実行する。
 6. RPM の版、PHP-FPM の稼働、既存サイトを確認する。
@@ -46,6 +49,9 @@ apply と rollback のときだけ、PHP-FPM を一時停止します。
 ビルド中に本番サイトを止める必要はありません。
 
 【確認範囲】
-キット作成時にソース・パッチ・スクリプトを確認していますが、
-作成環境には Docker がないため実際の AL2 ビルド・本番適用は未実施です。
+2026-10-22にAL2コンテナでビルドと全件試験を完了しました。
+PHPT: 合格10,302、スキップ7,372、既存の想定失敗8、失敗・警告0。
+完成RPMの更新・切り戻し・再適用、Apache/FPM/DB、アップロード、同時要求も確認済みです。
+本番への接続・変更、本番アプリ、systemd依存の導入手順全体は未実施です。
+詳細と証拠はVALIDATION-ja.mdに記録しています。
 途中で失敗した場合は止め、ログを確認してから続けてください。

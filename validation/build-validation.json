@@ -1,0 +1,62 @@
+{
+  "status": "passed",
+  "recorded_utc": "2026-10-22T14:16:25.161370+00:00",
+  "architecture": "x86_64",
+  "operating_system": "Amazon Linux 2",
+  "cpu_limit": 2,
+  "memory_limit": "4g",
+  "rpm_release": "1.amzn2.cve20261021.1",
+  "php_version": "8.1.34",
+  "normal_rpmbuild_ba_completed": true,
+  "full_test_suite_enabled": true,
+  "compile_variants": [
+    "cgi",
+    "apache",
+    "fpm",
+    "embedded",
+    "ztscli",
+    "zts"
+  ],
+  "verified_incremental_recovery": true,
+  "phpt": {
+    "total": 17682,
+    "skipped": 7372,
+    "warned": 0,
+    "failed": 0,
+    "expected_failures": 8,
+    "passed": 10302,
+    "duration_seconds": 1162
+  },
+  "expected_failure_details": [
+    "Test open_basedir configuration [tests/security/open_basedir_linkinfo.phpt]   XFAIL REASON: BUG: open_basedir cannot delete symlink to prohibited file. See also",
+    "Inconsistencies when accessing protected members [Zend/tests/access_modifiers_008.phpt]   XFAIL REASON: Discussion: http://marc.info/?l=php-internals&m=120221184420957&w=2",
+    "Inconsistencies when accessing protected members - 2 [Zend/tests/access_modifiers_009.phpt]   XFAIL REASON: Discussion: http://marc.info/?l=php-internals&m=120221184420957&w=2",
+    "DateTime::diff() -- fall type3 type3 [ext/date/tests/DateTime_diff-fall-type3-type3.phpt]   XFAIL REASON: Various bugs exist",
+    "Bug #42718 (unsafe_raw filter not applied when configured as default filter) [ext/filter/tests/bug42718.phpt]   XFAIL REASON: FILTER_UNSAFE_RAW not applied when configured as default filter, even with flags",
+    "Bug #67296 (filter_input doesn't validate variables) [ext/filter/tests/bug49184.phpt]   XFAIL REASON: See Bug #49184",
+    "Bug #67167: filter_var(null,FILTER_VALIDATE_BOOLEAN,FILTER_NULL_ON_FAILURE) returns null [ext/filter/tests/bug67167.02.phpt]   XFAIL REASON: Requires php_zval_filter to not use convert_to_string for all filters.",
+    "updateTimestamp never called when session data is empty [ext/session/tests/bug71162.phpt]   XFAIL REASON: Current session module is designed to write empty session always. In addition, current session module only supports SessionHandlerInterface only from PHP 7.0."
+  ],
+  "initial_attempt_phpt": {
+    "total": 17682,
+    "passed": 10298,
+    "skipped": 7372,
+    "expected_failures": 8,
+    "failed": 4,
+    "warned": 0
+  },
+  "adjusted_tests": {
+    "official_behavior_phpt": 11,
+    "al2_environment_phpt": 4,
+    "targeted_passed": 15,
+    "targeted_failed": 0,
+    "targeted_skipped": 0
+  },
+  "evidence_sha256": {
+    "logs/rpmbuild.log": "f098ca6250ca17ef23af6aa914665c341a623ddeb57075a93c8f30ebad610ab8",
+    "logs/VALIDATION.txt": "55d734819ecc866c2ca4d6a7791c232e8c182627b8346b2ddb398a7b5b48f370",
+    "logs/compile-cache-reuse-validation.json": "477c5a57935ed0bb4fc2e55b7c9054ca9ffe7e44abe02d7e15ed56e70f042539",
+    "logs/generated-input-cache.jsonl": "f7ed357cc390d8bf6019221bed6f05218cb703a664c4355b13901750a9f8dc09",
+    "sources/php.spec": "6f8ee9e502f72be339bf7732e1e9b226ac131f6ca5bd68fb7233e8088ec00c52"
+  }
+}

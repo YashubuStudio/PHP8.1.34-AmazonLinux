@@ -86,9 +86,12 @@ def main():
         path = args.build_run_logs / name
         if path.is_file():
             shutil.copy2(path, destination / 'logs' / name)
-    for name in ('README-ja.md', 'README.html', 'TEST-CHANGES-ja.md'):
+    for name in ('README-ja.md', 'README.html', 'TEST-CHANGES-ja.md',
+                 'START-HERE-ja.txt', 'VALIDATION-ja.txt', 'RELEASE-NOTES-ja.txt'):
         shutil.copy2(KIT / name, destination / name)
+    shutil.copy2(KIT / 'TEST-CHANGES-ja.md', destination / 'sources/TEST-CHANGES-ja.md')
     shutil.copy2(args.validation, destination / 'VALIDATION-ja.md')
+    shutil.copytree(KIT / 'validation', destination / 'logs/source-validation')
     validation_sources = destination / 'sources/validation'
     (validation_sources / 'tests').mkdir(parents=True)
     for name in report['harness_sha256']:

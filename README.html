@@ -12,7 +12,7 @@ main{min-width:0;background:var(--paper);border:1px solid var(--line);border-rad
 @media print{body{background:white;font-size:11px}.top{color:#183047;background:white;padding:0 0 12px;border-bottom:2px solid #155fa0}.top p{color:#52687b}.layout{display:block;padding:0}.sidebar,.copy{display:none}main{border:0;box-shadow:none;padding:18px 0}h1{font-size:23px}h2{font-size:19px;margin-top:25px;break-after:avoid}h3,h4{break-after:avoid}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#183047;background:#f2f5f7}.code-wrap pre{padding:12px}pre code{font-size:9px}.table-wrap{overflow:visible}table{font-size:10px}a{color:inherit}}
 </style></head><body>
 <header class="top"><strong>PHP 8.1 · ローカルビルドキット</strong><p>Amazon Linux 2 / x86_64 — 手元で作成 → GitHubで受け渡し → EC2に適用</p></header>
-<div class="layout"><nav class="sidebar" aria-label="手順書の目次"><p class="label">CONTENTS / 目次</p><ol><li><a href="#section-1">先に確認すること</a></li><li><a href="#section-2">作業場所と順番</a></li><li><a href="#section-3">1. 手元の Docker を準備する</a></li><li><a href="#section-6">2. ZIP を手元に展開する</a></li><li><a href="#section-7">3. 手元でビルドする</a></li><li><a href="#section-10">4. GitHub Releases に完成ファイルを置く</a></li><li><a href="#section-11">5. 本番 EC2 で完成ファイルを取得する</a></li><li><a href="#section-15">6. 本番で導入前チェックする</a></li><li><a href="#section-16">7. 本番に適用する</a></li><li><a href="#section-17">8. 適用結果とサイトを確認する</a></li><li><a href="#section-18">9. 不具合時に元へ戻す</a></li><li><a href="#section-19">エラーで止まったとき</a></li><li><a href="#section-20">修正の内容と互換性</a></li><li><a href="#section-21">キット作成時の確認範囲</a></li><li><a href="#section-22">同梱ファイル</a></li><li><a href="#section-23">一次資料と固定した入力</a></li></ol><p class="note">最初の作業場所は<strong>手元のPC</strong>です。Amazon Linux 2のコンテナも、そのPC内で動かします。</p><button type="button" class="print" onclick="window.print()">印刷 / PDF保存</button></nav>
+<div class="layout"><nav class="sidebar" aria-label="手順書の目次"><p class="label">CONTENTS / 目次</p><ol><li><a href="#section-1">先に確認すること</a></li><li><a href="#section-2">作業場所と順番</a></li><li><a href="#section-3">1. 手元の Docker を準備する</a></li><li><a href="#section-6">2. ZIP を手元に展開する</a></li><li><a href="#section-7">3. 手元でビルドする</a></li><li><a href="#section-10">4. GitHub Releases に完成ファイルを置く</a></li><li><a href="#section-11">5. 本番 EC2 で完成ファイルを取得する</a></li><li><a href="#section-15">6. 本番で導入前チェックする</a></li><li><a href="#section-16">7. 本番に適用する</a></li><li><a href="#section-17">8. 適用結果とサイトを確認する</a></li><li><a href="#section-18">9. 不具合時に元へ戻す</a></li><li><a href="#section-19">エラーで止まったとき</a></li><li><a href="#section-20">修正の内容と互換性</a></li><li><a href="#section-21">ビルドと検証の確認範囲</a></li><li><a href="#section-22">同梱ファイル</a></li><li><a href="#section-23">一次資料と固定した入力</a></li></ol><p class="note">最初の作業場所は<strong>手元のPC</strong>です。Amazon Linux 2のコンテナも、そのPC内で動かします。</p><button type="button" class="print" onclick="window.print()">印刷 / PDF保存</button></nav>
 <main><h1>PHP 8.1 セキュリティ修正：手元でビルドして EC2 に適用する</h1>
 <p>作成日：2026-10-22（日本時間）</p>
 <p><strong>コンパイルは、すべて手元の PC で行います。</strong> 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。GitHub Actions は、検証済み完成物の再照合と Release 公開に使用します。</p>
@@ -436,9 +436,10 @@ sudo journalctl -u php-fpm -n 50 --no-pager
 <li>multipart フォームのヘッダー処理も変更されます。</li>
 </ul>
 <p>AWS の元ソースと PHP の修正パッチを使いますが、完成した RPM は <strong>自分の PC で作った未署名のローカルビルド</strong>です。AWS が配布・署名した修正版バイナリではありません。RPM 署名を必須とする独自運用がある場合、その設定を無効にするのではなく、自分の管理する鍵で署名するなど運用に合わせた対応が必要です。<a href="https://github.com/php/php-src/commit/1d7dec178a094e6e75b229ce22754045f8c6070a">PHP 公式コミット</a></p>
-<h2 id="section-21">キット作成時の確認範囲</h2>
-<p>AWS 公式ソース RPM と PHP 公式パッチの取得元・SHA-256、旧８ RPM の公式メタデータ、元の AWS パッチを含むソースへの修正パッチの適用、スクリプトの構文と処理順を確認しています。テスト期待値の追加調整は 11 件の PHPT に限定したテスト専用パッチとして分けており、PHP 本体の修正コードを追加するものではありません。テストのスキップや失敗の一括無視も追加していません。</p>
-<p><strong>この ZIP を作成した環境では Docker が利用できないため、Amazon Linux 2 コンテナ内での依存解決・コンパイル・全テスト・本番適用は未実施です。</strong> キット実行時にビルドとテストを行い、その後本番で導入前チェックを通します。サイトの実動作確認は最後に行います。</p>
+<h2 id="section-21">ビルドと検証の確認範囲</h2>
+<p>2026-10-22、Amazon Linux 2 / x86_64の実コンテナで全6構成のコンパイルと通常のRPMビルドを完了しました。PHPTは総数17,682、合格10,302、スキップ7,372、既存の想定失敗8、失敗0、警告0です。公式修正による動作変更11件とAL2環境差4件を、独立したテスト専用パッチで調整しています。テストのスキップ・失敗の一括無視・TLS検証の無効化は追加していません。</p>
+<p><strong>別のクリーンなAL2環境で、完成RPMの更新・切り戻し・再適用、Apache→PHP-FPM→MariaDB、通常セッション・アップロード、8クライアント100要求、限定的なメモリ上限エラー後の復帰、設定・モジュール保持を確認しました。</strong> 本番への接続・変更、本番アプリ、systemd依存の導入手順全体は未実施です。導入前checkと適用後のサイト確認を行ってください。詳細と証拠は検証記録を参照してください。</p>
+<p><a href="VALIDATION-ja.md">検証記録と確認範囲</a></p>
 <h2 id="section-22">同梱ファイル</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -484,6 +485,14 @@ sudo journalctl -u php-fpm -n 50 --no-pager
 <td>公式修正による動作変更に合わせたテスト期待値の調整</td>
 </tr>
 <tr>
+<td><code>tests-al2-environment.patch</code></td>
+<td>タイムゾーン履歴・OpenSSL版差・期限切れ証明書へのテスト専用調整</td>
+</tr>
+<tr>
+<td><code>VALIDATION-ja.md</code></td>
+<td>全件試験・完成RPM実行試験の詳細と証拠</td>
+</tr>
+<tr>
 <td><code>TEST-CHANGES-ja.md</code></td>
 <td>テスト期待値を調整した理由と範囲</td>
 </tr>
@@ -493,7 +502,7 @@ sudo journalctl -u php-fpm -n 50 --no-pager
 </tr>
 <tr>
 <td><code>VALIDATION-ja.txt</code></td>
-<td>キット作成時に確認したことと、未実施の検証</td>
+<td>ビルド・実行試験の結果と未実施の範囲</td>
 </tr>
 <tr>
 <td><code>KIT-SHA256SUMS</code></td>

@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm",
+  "source_rpm_sha256": "13af181bcbd600f70f7ceb7d4eb9e1fd41bfeeb4143d47045d04566d25bf020d",
+  "spec_sha256": "6f8ee9e502f72be339bf7732e1e9b226ac131f6ca5bd68fb7233e8088ec00c52",
+  "source_rpm_spec_matches_bundled_spec": true,
+  "canonical_full_stages_and_patch202": true,
+  "no_cached_absolute_paths_in_spec": true,
+  "no_short_circuited_rpm_dependencies": true,
+  "rpms": {
+    "php-cli-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "c436693ce646578b9496546c0dabe9efcc5aa2878e151424e2641e4cff9047a3",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    },
+    "php-common-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "e27a24d4e7f1fd752c1effd2b3f1f367ebf1b2e4a045cf494729f79bd06aeb2c",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    },
+    "php-fpm-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "21223192970f21e4513fe5608aaae943aeca19f6427e5e281ba94afdc3907f7c",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    },
+    "php-gd-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "4ef13b5a6aac6ea1718929f96b5c11b0709a3af3afad272d4bf0ca9c7efe6a6c",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    },
+    "php-mbstring-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "674f889dd8283a157a3a1c6589c09647932f055dabc59c1bb039ee74ef5c2b60",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    },
+    "php-mysqlnd-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "26d3c07585fb40126b2b3836660029aef96fde306b0e6f3fd2a0c2074ccd64e5",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    },
+    "php-pdo-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "43cd6b9ce9dff0a3302d57c2c64ca8db6e712eb5bb9198770cf0974eb05ade8c",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    },
+    "php-xml-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": {
+      "sha256": "8630a382ee18ebfdd8597c2ec7080c299ca76817b66a974fff37eef2c27d1fc7",
+      "source_rpm": "php-8.1.34-1.amzn2.cve20261021.1.src.rpm"
+    }
+  }
+}

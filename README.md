@@ -5,8 +5,11 @@ AWS の `php-8.1.34-1.amzn2.src.rpm` に [PHP 公式修正](https://github.com/p
 PHP の表示バージョンは **8.1.34** のまま、RPM Release が **`1.amzn2.cve20261021.1`** に変わります
 AWS が配布・署名した修正版バイナリではなく、未署名のローカル再ビルドです
 
-完成したバイナリは [Releases](https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/releases) に公開します
+完成バイナリ: [php81-8.1.34-cve20261021.1](https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/releases/tag/php81-8.1.34-cve20261021.1)
 ビルドと実行試験の結果は [検証記録](VALIDATION-ja.md)、導入前確認・適用・切り戻しは [詳しい手順](README-ja.md) を参照してください
+
+2026-10-22の全件PHPTは合格10,302・スキップ7,372・既存の想定失敗8・失敗0・警告0でした
+完成RPMの更新・切り戻し・再適用と、Apache/FPM/DB・セッション・アップロード・8クライアント100要求・限定的な異常終了後の復帰も確認済みです
 
 対象パッケージは `php-cli`、`php-common`、`php-fpm`、`php-gd`、`php-mbstring`、`php-mysqlnd`、`php-pdo`、`php-xml` の8種類です
 
