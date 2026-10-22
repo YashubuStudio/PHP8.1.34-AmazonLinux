@@ -12,6 +12,9 @@
 - Apache→PHP-FPMの実HTTP要求で、mbstring、GD、DOM、SimpleXML、XMLReader、XMLWriter、PDO SQLite、PDO MySQL、mysqli、mysqlndを確認
 - テスト用MariaDBに実際に接続して問い合わせを実行
 - 元のCLIのメモリ上限エラーが終了コード255とshutdown callback実行になることを確認
+- 最初に完成した修正版CLIで、8.1.34の起動とメモリ上限エラー時の終了コード1・shutdown callbackの不実行を確認
+- 修正版CLI/CGIで調整対象11件のPHPTを実行し、11件合格・スキップ0件・警告0件・失敗0件を確認
+- コンパイル済みの新しい共有拡張12個をCLIで読み込み、起動時の警告がないこと、GDのPNG入出力、日本語処理、DOM/SimpleXML、XMLReader/Writer、PDO SQLiteの問い合わせ、PDO MySQLドライバーとmysqlndを確認
 
 進行中:
 

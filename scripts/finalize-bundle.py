@@ -82,6 +82,10 @@ def main():
     shutil.copytree(args.runtime_results, destination / 'logs/runtime')
     for name in ('environment.txt', 'console.log'):
         shutil.copy2(args.build_run_logs / name, destination / 'logs' / ('local-' + name))
+    for name in ('early-phpt.log', 'early-compiled-cli-validation.log', 'early-shared-extension-validation.log'):
+        path = args.build_run_logs / name
+        if path.is_file():
+            shutil.copy2(path, destination / 'logs' / name)
     for name in ('README-ja.md', 'README.html', 'TEST-CHANGES-ja.md'):
         shutil.copy2(KIT / name, destination / name)
     shutil.copy2(args.validation, destination / 'VALIDATION-ja.md')
