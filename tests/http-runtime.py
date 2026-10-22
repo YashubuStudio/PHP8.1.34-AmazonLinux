@@ -49,6 +49,7 @@ def main():
             responses = list(executor.map(lambda _: request(), range(100)))
         assert all(item['ok'] for item in responses)
         result['parallel_requests'] = len(responses)
+        result['concurrent_clients'] = 8
         result['worker_pids'] = sorted(set(item['pid'] for item in responses))
         callback = Path('/tmp/php81-runtime-shutdown')
         assert not callback.exists()

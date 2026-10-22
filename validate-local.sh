@@ -51,6 +51,7 @@ phases = {phase: json.loads((root / ('http-' + phase + '.json')).read_text())
           for phase in ('original', 'candidate', 'rollback', 'reapplied')}
 candidate = phases['candidate']
 assert candidate['parallel_requests'] == 100
+assert candidate['concurrent_clients'] == 8
 assert candidate['session_requests'] == 10
 assert candidate['multipart_upload_and_disabled_progress']
 assert candidate['bounded_oom_and_fpm_recovery']

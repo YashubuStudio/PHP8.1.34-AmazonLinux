@@ -52,7 +52,7 @@ def verify_archive(archive_path, report):
     }
     require(report.get('status') == 'passed', 'Runtime validation did not pass')
     candidate = report['phases']['candidate']
-    require(candidate['parallel_requests'] == 100 and candidate['session_requests'] == 10,
+    require(candidate['parallel_requests'] == 100 and candidate['concurrent_clients'] == 8 and candidate['session_requests'] == 10,
             'Missing runtime request coverage')
     require(candidate['multipart_upload_and_disabled_progress'] and candidate['bounded_oom_and_fpm_recovery'],
             'Missing upload or bounded OOM verification')

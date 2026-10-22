@@ -34,11 +34,26 @@ bash validate-local.sh output/php81-build.XXXXXXXX/php81-rpms-8.1.34-cve20261021
 ```
 
 別の Amazon Linux 2 コンテナで元の8RPMをインストールし、実際に更新・切り戻し・再適用します
-Apache と PHP-FPM を起動し、日本語処理・画像処理・XML・PDO・mysqli・MariaDB接続、セッション、アップロード、100件の並列リクエスト、限定的なメモリ上限エラーからの復帰を確認します
+Apache と PHP-FPM を起動し、日本語処理・画像処理・XML・PDO・mysqli・MariaDB接続、セッション、アップロード、同時8接続で100件のリクエスト、限定的なメモリ上限エラーからの復帰を確認します
 ホスト側へポートは公開しません
 
 `output/runtime-validation-*/runtime-validation.json` には、実際に試験した16RPMのSHA-256と結果を記録します
 systemd に依存する導入スクリプト全体の実行と、利用者の本番アプリは、このコンテナ試験の対象には含まれません
+
+検証記録を更新したら、ビルド時の元アーカイブを保存したまま、試験記録入りの配布物を作成できます
+下記の `XXXXXXXX` と日時付きディレクトリは、実際のビルド・検証出力先に置き換えます
+
+```bash
+python3 scripts/finalize-bundle.py \
+  --bundle output/php81-build.XXXXXXXX/php81-rpms-8.1.34-cve20261021.1 \
+  --runtime-results output/runtime-validation-日時-XXXXXXXX \
+  --build-run-logs output/local-build-日時-XXXXXXXX \
+  --validation VALIDATION-ja.md \
+  --output output/release
+```
+
+完成物は `output/release/php81-rpms-8.1.34-cve20261021.1.tar.gz` と、その `.sha256` です
+試験したRPMと配布物の一致、元バンドル全ファイル、PHPテストの失敗0件、実行試験用スクリプトの一致も確認します
 
 ## リリースの公開手順
 
