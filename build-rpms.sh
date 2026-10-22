@@ -62,7 +62,10 @@ if [[ -n ${PHP81_RESUME_WORK:-} ]]; then
   [[ -d $PHP81_RESUME_WORK && ! -L $PHP81_RESUME_WORK && -f $PHP81_RESUME_WORK/compile-cache/manifest.json ]] \
     || die 'A verified completed-compilation cache is required for recovery.'
   [[ -f $script_dir/scripts/build-cache.py ]] || die 'Missing compilation-cache verification helper.'
+  [[ -x $script_dir/scripts/cache-bin/make ]] || die 'Missing verified incremental Make wrapper.'
+  export PATH="$script_dir/scripts/cache-bin:$PATH"
   build_work=$PHP81_RESUME_WORK
+  touch "$build_work/generated-input-cache.jsonl"
 else
   build_work=$(mktemp -d "$PWD/php81-build.XXXXXXXX")
 fi
@@ -256,6 +259,7 @@ rebuilt_srpm="$rpm_topdir/SRPMS/php-8.1.34-${package_release}.src.rpm"
 cp -- "$rebuilt_srpm" "$bundle_dir/sources/"
 if [[ -n ${PHP81_RESUME_WORK:-} ]]; then
   cp -- "$build_work/cache-reuse-validation.json" "$bundle_dir/logs/compile-cache-reuse-validation.json"
+  cp -- "$build_work/generated-input-cache.jsonl" "$bundle_dir/logs/generated-input-cache.jsonl"
 fi
 
 cat > "$bundle_dir/logs/VALIDATION.txt" <<VALIDATION

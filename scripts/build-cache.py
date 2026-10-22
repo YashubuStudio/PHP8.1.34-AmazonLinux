@@ -120,9 +120,33 @@ def restore(work):
     print('Normal configure, make, install and full PHPT stages remain enabled', flush=True)
 
 
+def stamps(work):
+    # configure recreates Zend/zend_config.h even when its bytes are unchanged.
+    # Normalize only generated C/header inputs before the real Make observes
+    # their timestamps; never touch different contents or compiled outputs.
+    source = work / 'rpmbuild/BUILD/php-8.1.34'
+    cwd = Path.cwd().resolve()
+    if cwd not in [source / name for name in DIRECTORIES]:
+        return
+    manifest = json.loads((work / 'compile-cache/manifest.json').read_text())
+    prefix = cwd.relative_to(source).as_posix() + '/'
+    restored = []
+    for name, metadata in manifest['files'].items():
+        if not name.startswith(prefix) or not name.endswith(('.h', '.c')) or metadata['type'] != 'file':
+            continue
+        path = source / name
+        if (path.is_file() and not path.is_symlink() and path.stat().st_mtime_ns != metadata['mtime_ns']
+                and sha256(path) == metadata['sha256']):
+            os.utime(str(path), ns=(metadata['atime_ns'], metadata['mtime_ns']))
+            restored.append(name)
+    if restored:
+        with (work / 'generated-input-cache.jsonl').open('a') as output:
+            output.write(json.dumps({'cwd': str(cwd), 'content_identical_inputs': restored}) + '\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=('create', 'restore'))
+    parser.add_argument('mode', choices=('create', 'restore', 'stamps'))
     parser.add_argument('work', type=Path)
     args = parser.parse_args()
     require(Path('/.dockerenv').exists() and os.geteuid() != 0, 'Run as the non-root builder inside the local AL2 container')
@@ -130,8 +154,10 @@ def main():
     require(work.parent == Path('/work') and work.name.startswith('php81-build.') and not work.is_symlink(), 'Unexpected build work directory')
     if args.mode == 'create':
         create(work)
-    else:
+    elif args.mode == 'restore':
         restore(work)
+    else:
+        stamps(work)
 
 
 if __name__ == '__main__':

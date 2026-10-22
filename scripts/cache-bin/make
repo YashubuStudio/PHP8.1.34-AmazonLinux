@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Keep standard Make behaviour, with verified incremental-input timestamps.
+set -Eeuo pipefail
+if [[ -n ${PHP81_RESUME_WORK:-} ]]; then
+    /usr/bin/python3 /kit/scripts/build-cache.py stamps "$PHP81_RESUME_WORK"
+fi
+exec /usr/bin/make "$@"
