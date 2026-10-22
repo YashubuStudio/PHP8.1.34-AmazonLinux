@@ -1,0 +1,141 @@
+{
+  "status": "passed",
+  "started_utc": "2026-10-22T14:14:47Z",
+  "completed_utc": "2026-10-22T14:17:44.175073+00:00",
+  "image": "public.ecr.aws/amazonlinux/amazonlinux@sha256:ee98817857ba78c33457304c9b6d81579322e9a464847c6e54207f44ce46f70c",
+  "architecture": "x86_64",
+  "cpu_limit": 2,
+  "memory_limit": "4g",
+  "rpm_sha256": {
+    "new/php-cli-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "c436693ce646578b9496546c0dabe9efcc5aa2878e151424e2641e4cff9047a3",
+    "new/php-common-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "e27a24d4e7f1fd752c1effd2b3f1f367ebf1b2e4a045cf494729f79bd06aeb2c",
+    "new/php-fpm-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "21223192970f21e4513fe5608aaae943aeca19f6427e5e281ba94afdc3907f7c",
+    "new/php-gd-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "4ef13b5a6aac6ea1718929f96b5c11b0709a3af3afad272d4bf0ca9c7efe6a6c",
+    "new/php-mbstring-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "674f889dd8283a157a3a1c6589c09647932f055dabc59c1bb039ee74ef5c2b60",
+    "new/php-mysqlnd-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "26d3c07585fb40126b2b3836660029aef96fde306b0e6f3fd2a0c2074ccd64e5",
+    "new/php-pdo-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "43cd6b9ce9dff0a3302d57c2c64ca8db6e712eb5bb9198770cf0974eb05ade8c",
+    "new/php-xml-8.1.34-1.amzn2.cve20261021.1.x86_64.rpm": "8630a382ee18ebfdd8597c2ec7080c299ca76817b66a974fff37eef2c27d1fc7",
+    "old/php-cli-8.1.34-1.amzn2.x86_64.rpm": "80ade73e3b8fda07e96163cc47f23aa0230c6eb8000cc462f7c9141c0bd2e513",
+    "old/php-common-8.1.34-1.amzn2.x86_64.rpm": "d584483c3b1a39c2d5706c5eafa12199cca6cb0abcab32cd5be683e80e49c249",
+    "old/php-fpm-8.1.34-1.amzn2.x86_64.rpm": "9cec8ab31bb543967a52fbb3091fb1d0d924b3eca8e1719ff9c8a5f6f89180d2",
+    "old/php-gd-8.1.34-1.amzn2.x86_64.rpm": "5357243199aa6dccb54568eccdc62dae15ad0d1923b2d3a5f44f26d7165a36f1",
+    "old/php-mbstring-8.1.34-1.amzn2.x86_64.rpm": "862348bc84165c4202fcab203aafcf79e4e380100a7ec74e677bd05e9de47b82",
+    "old/php-mysqlnd-8.1.34-1.amzn2.x86_64.rpm": "5e74f5b814639f9e73a2c3c7bd3a11f351d5544bc9a079eae97ac9cc53584e40",
+    "old/php-pdo-8.1.34-1.amzn2.x86_64.rpm": "9c5ccbb29b7675afa0b2e44c0cbb2d4dc0e4db03100da84ab058bf575c7a01fc",
+    "old/php-xml-8.1.34-1.amzn2.x86_64.rpm": "fc840f643349d818b5cc7bb70c5ffe1d45212a3f8864035c7c9fcd323c46836d"
+  },
+  "phases": {
+    "original": {
+      "phase": "original",
+      "health": {
+        "ok": true,
+        "version": "8.1.34",
+        "sapi": "fpm-fcgi",
+        "pid": 347,
+        "checks": [
+          "mbstring",
+          "gd",
+          "dom",
+          "simplexml",
+          "xmlreader",
+          "xmlwriter",
+          "pdo_sqlite",
+          "pdo_mysql",
+          "mysqli",
+          "mysqlnd"
+        ]
+      }
+    },
+    "candidate": {
+      "phase": "candidate",
+      "health": {
+        "ok": true,
+        "version": "8.1.34",
+        "sapi": "fpm-fcgi",
+        "pid": 428,
+        "checks": [
+          "mbstring",
+          "gd",
+          "dom",
+          "simplexml",
+          "xmlreader",
+          "xmlwriter",
+          "pdo_sqlite",
+          "pdo_mysql",
+          "mysqli",
+          "mysqlnd"
+        ]
+      },
+      "session_requests": 10,
+      "multipart_upload_and_disabled_progress": true,
+      "parallel_requests": 100,
+      "concurrent_clients": 8,
+      "worker_pids": [
+        428,
+        429,
+        430,
+        431,
+        432,
+        566
+      ],
+      "bounded_oom_and_fpm_recovery": true,
+      "bounded_oom_http_status": 503
+    },
+    "rollback": {
+      "phase": "rollback",
+      "health": {
+        "ok": true,
+        "version": "8.1.34",
+        "sapi": "fpm-fcgi",
+        "pid": 700,
+        "checks": [
+          "mbstring",
+          "gd",
+          "dom",
+          "simplexml",
+          "xmlreader",
+          "xmlwriter",
+          "pdo_sqlite",
+          "pdo_mysql",
+          "mysqli",
+          "mysqlnd"
+        ]
+      }
+    },
+    "reapplied": {
+      "phase": "reapplied",
+      "health": {
+        "ok": true,
+        "version": "8.1.34",
+        "sapi": "fpm-fcgi",
+        "pid": 739,
+        "checks": [
+          "mbstring",
+          "gd",
+          "dom",
+          "simplexml",
+          "xmlreader",
+          "xmlwriter",
+          "pdo_sqlite",
+          "pdo_mysql",
+          "mysqli",
+          "mysqlnd"
+        ]
+      }
+    }
+  },
+  "harness_sha256": {
+    "validate-local.sh": "7acf3a8ca4423a4f06aecdfa74512575e1044b554a8b3d464a2354287d72d74f",
+    "tests/container-runtime.sh": "d7043d661b9e8bcbb47c4e73652330f778f76ec2559086c06434a75dc83875ac",
+    "tests/http-runtime.py": "2f6e611ce997e4547d4b22f97ba3ac8f5458cd8bb2eafac63f5039f5922e8818",
+    "tests/runtime.php": "3e1dfc58dbeaac8f2392976050b6378cae9e2468e1ae93f347f2d2b5f30ad1d7"
+  },
+  "configuration_preserved": true,
+  "module_list_preserved": true,
+  "bounded_cli_oom_original_rollback_exit": 255,
+  "bounded_cli_oom_candidate_reapplied_exit": 1,
+  "limitations": [
+    "Isolated Apache/PHP-FPM/MariaDB fixtures; production applications and traffic were not tested.",
+    "Actual RPM update/rollback/reapply tested; systemd-dependent install-rpms.sh orchestration was not executed in this non-systemd container."
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "repository": "YashubuStudio/PHP8.1.34-AmazonLinux",
+  "tag": "php81-8.1.34-cve20261021.1",
+  "source_commit": "8614c02d48fa063c6ee6af01d935a96abb39afcd",
+  "archive": "php81-rpms-8.1.34-cve20261021.1.tar.gz",
+  "archive_sha256": "565a29f00f2aeeb2a6e99afa67774f86e889f2d3b660d76b7e03a259a7a487ec",
+  "parts": [
+    {
+      "name": "archive-part-0000",
+      "size": 26214400,
+      "sha256": "66542460e4757319246521eafbc5979e998d9eb228ca7c271e42b6472a302e9e"
+    },
+    {
+      "name": "archive-part-0001",
+      "size": 20119554,
+      "sha256": "6dbd91995f426a9316df003bbe3bf0c0903cec5e06d5dd8dff700fde08a11379"
+    }
+  ],
+  "notes_sha256": "3e51d1b21a38ffffa2552134e57fb46bba0b33d0b6f88fad3292f5c59eaf53fb",
+  "files": [
+    {
+      "name": "php81-rpms-8.1.34-cve20261021.1.tar.gz.sha256",
+      "size": 105,
+      "sha256": "e045ddbfac7346a5affa57e4cf27a4b84a1e90fa57ccf3d2fd1cc050c7871b72"
+    },
+    {
+      "name": "VALIDATION-ja.md",
+      "size": 6359,
+      "sha256": "187fcfb64e8790585fa733cc2b1e9a2060d9b765a0f36de69b3cf7c7180186aa"
+    },
+    {
+      "name": "runtime-validation.json",
+      "size": 5152,
+      "sha256": "5b9159fee17db0f0b36bd06dbcfbf7f0a4fa81d0c63d822f09cd735be675b880"
+    }
+  ]
+}
