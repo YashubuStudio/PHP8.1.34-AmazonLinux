@@ -16,7 +16,7 @@ main{min-width:0;background:var(--paper);border:1px solid var(--line);border-rad
 <main><h1>PHP 8.1 セキュリティ修正：手元でビルドして EC2 に適用する</h1>
 <p>作成日：2026-10-22（日本時間）</p>
 <p><strong>コンパイルは、すべて手元の PC で行います。</strong> 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。GitHub Actions は、検証済み完成物の再照合と Release 公開に使用します。</p>
-<p>この ZIP は、手順書と実行スクリプトのセットです。<strong>コンパイル済み RPM は含まれていません。</strong> 最初に手元でビルドしてから、本番への手順に進みます。</p>
+<p>ソース ZIP は手順書と実行スクリプトのセットで、コンパイル済み RPM は含みません。<strong>公開済み Release を使う場合は再ビルド不要です。</strong> <a href="README.md#aws-ec2の既存php-81を更新する">EC2 の既存 PHP 8.1 を更新する手順</a>から、完成 RPM の取得・検証・適用を進めてください。この文書の「1〜4」は、自分で再ビルドして配布する場合の手順です。</p>
 <h2 id="section-1">先に確認すること</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -75,7 +75,7 @@ main{min-width:0;background:var(--paper);border:1px solid var(--line);border-rad
 </tr>
 </tbody></table></div>
 <p>資源・時間は実測した最低要件ではなく、環境準備のための目安です。ビルドには数十分〜数時間かかる可能性があります。Docker の仮想環境に割り当てるメモリと、PC 全体のメモリは別に考えてください。</p>
-<p>本番で確認済みの８パッケージは次のとおりです。追加の PHP パッケージがある場合、このキットは確認段階で停止します。</p>
+<p>更新対象の８パッケージは次のとおりです。追加の PHP パッケージがある場合、このキットは確認段階で停止します。</p>
 <div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-text">php-cli    php-common    php-fpm    php-gd
 php-mbstring    php-mysqlnd    php-pdo    php-xml
 </code></pre></div>
@@ -253,9 +253,9 @@ sha256sum --check --strict php81-rpms-8.1.34-cve20261021.1.tar.gz.sha256
 <p>説明文は同梱の <code>RELEASE-NOTES-ja.txt</code> を使えます。「Amazon Linux 2 x86_64 用のローカル再ビルド、PHP 公式修正コミット、AWS 公式署名付きの修正版バイナリではないこと」を記載しています。ソース、パッチ、ログは完成アーカイブの中にも含まれます。GitHub が自動生成する <code>Source code (zip)</code> は、今回作った RPM のアーカイブとは別です。<a href="https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository">GitHub の Release 作成手順</a></p>
 <p>WSL で作成した <code>output/</code> を Windows のファイル選択画面で開く場合は、エクスプローラーから <code>\\wsl$\Ubuntu\home\Linuxのユーザー名\work\php81-local-build-kit\output</code> を参照します。<code>Ubuntu</code> の部分は、実際の WSL ディストリビューション名に置き換えます。</p>
 <h2 id="section-11">5. 本番 EC2 で完成ファイルを取得する</h2>
-<p>本番は、今回確認した <code>ip-172-31-40-13</code> のサーバーです。接続には普段使っている SSH ホスト名・鍵を使います。<code>172.31.40.13</code> はプライベート IP のため、手元から直接到達できるとは限りません。</p>
+<p>対象の Amazon Linux 2 / x86_64 EC2 に、普段使っている SSH ホスト名・鍵で接続します。プライベート IP を使う場合は、その EC2 に到達できるネットワークから接続してください。必要な PHP の版・8 パッケージ・Apache / FPM 構成は、上の「先に確認すること」で確認します。</p>
 <h3 id="section-12">5-A. 公開リポジトリの場合</h3>
-<p>下記の <code>OWNER/REPO</code> を実際の GitHub リポジトリに置き換えます。<code>latest</code> ではなく、今回作成したタグを指定して取得します。取得先に同名ファイルがある場合は、その内容を確認してから進めてください。</p>
+<p>下記は、このリポジトリの公開済み Release を使うコマンドです。<code>latest</code> ではなく、検証済みのタグを指定して取得します。取得先に同名ファイルがある場合は、その内容を確認してから進めてください。ログインユーザーのホームが <code>/home/ec2-user</code> 以外の場合は、そのパスに読み替えます。</p>
 <p>実行場所：<strong>本番 EC2／SSH 接続後、公開リポジトリの場合</strong></p>
 <div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">(
   set -e

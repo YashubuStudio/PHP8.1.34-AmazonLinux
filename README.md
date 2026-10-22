@@ -13,6 +13,121 @@ AWS が配布・署名した修正版バイナリではなく、未署名のロ�
 
 対象パッケージは `php-cli`、`php-common`、`php-fpm`、`php-gd`、`php-mbstring`、`php-mysqlnd`、`php-pdo`、`php-xml` の8種類です
 
+## AWS EC2の既存PHP 8.1を更新する
+
+公開済みのRPMを使い、EC2に入っているPHPを**既存パッケージの更新として導入**します
+`install-rpms.sh apply` が8種類のRPMをまとめて `rpm -Uvh` で更新します。EC2側でのコンパイルやDockerの準備は不要です
+このReleaseはダウンロードしたRPMから導入するため、通常の `yum update` だけでは適用されません
+
+### 1. 更新対象を確認する
+
+対象は次の構成です。以下のコマンドは、適用先EC2へSSH接続し、`ec2-user`などの一般ユーザーで実行します
+
+| 項目 | 必要な状態 |
+|---|---|
+| OS・CPU | Amazon Linux **2** / `x86_64` |
+| 現在のPHP | AWS版 `8.1.34-1.amzn2` |
+| PHPパッケージ | 上記の8種類がすべて入り、追加の `php*` パッケージがないこと |
+| Web実行方式 | Apache（`httpd`）→PHP-FPM（`php-fpm`）が起動中 |
+| 権限 | `sudo`を実行できること |
+
+```bash
+cat /etc/os-release
+uname -m
+rpm -qa 'php*' --qf '%{NAME} %{VERSION}-%{RELEASE}.%{ARCH}\n' | LC_ALL=C sort
+systemctl is-active php-fpm httpd
+```
+
+OSは `ID=amzn` / `VERSION_ID="2"`、CPUは `x86_64`、8パッケージすべてが `8.1.34-1.amzn2.x86_64` であることを確認します
+Amazon Linux 2023、Graviton（ARM64）、別のPHP版・配布元、追加のPHPパッケージ、nginxや別の実行方式は、この導入スクリプトの対象外です。構成が異なる場合は、その構成に合わせた対応が必要です
+
+適用時にはPHP-FPMを短時間停止するため、作業時間を確保します。既存アプリ・DBのバックアップも用意してください
+スクリプトが保存するバックアップはPHP設定・パッケージ情報・切り戻し用RPMで、アプリやDB本体は含みません
+
+### 2. 完成RPMを取得・検証して展開する
+
+以下は**EC2上**で実行します。公開ReleaseのためGitHubトークンは不要です
+アーカイブと展開先は、ログインユーザーのホームディレクトリに作成します。同名ファイルや展開先がある場合は、その内容を確認できるように処理を止めます
+
+```bash
+(
+  set -e
+  cd "$HOME"
+  php81_archive='php81-rpms-8.1.34-cve20261021.1.tar.gz'
+  php81_bundle='php81-rpms-8.1.34-cve20261021.1'
+  php81_release_url='https://github.com/YashubuStudio/PHP8.1.34-AmazonLinux/releases/download/php81-8.1.34-cve20261021.1'
+  for php81_path in "$php81_archive" "$php81_archive.sha256" "$php81_bundle"; do
+    if [ -e "$php81_path" ] || [ -L "$php81_path" ]; then
+      printf '既存のファイル・展開先を確認してください: %s\n' "$php81_path" >&2
+      exit 1
+    fi
+  done
+  curl --fail --location --proto '=https' --proto-redir '=https' \
+    --tlsv1.2 --retry 3 --connect-timeout 20 --max-time 1800 \
+    --output "$php81_archive" "$php81_release_url/$php81_archive"
+  curl --fail --location --proto '=https' --proto-redir '=https' \
+    --tlsv1.2 --retry 3 --connect-timeout 20 --max-time 1800 \
+    --output "$php81_archive.sha256" "$php81_release_url/$php81_archive.sha256"
+  sha256sum --check --strict "$php81_archive.sha256"
+  tar -xzf "$php81_archive"
+  cd "$php81_bundle"
+  sha256sum --check --strict SHA256SUMS
+)
+```
+
+アーカイブと内部ファイルのチェックがすべて `OK` になったら次へ進みます
+
+### 3. 既存環境との適合を確認する
+
+```bash
+sudo bash "$HOME/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh" \
+  check "$HOME/php81-rpms-8.1.34-cve20261021.1"
+```
+
+最後に **`PRECHECK OK`** が出ることを確認します。この段階ではPHPパッケージの交換やPHP-FPMの停止は行いません
+現在の8パッケージ・版、AWS旧RPMの署名、依存関係、候補PHPの拡張一覧・メモリ上限エラー時の動作、PHP-FPM設定を確認します
+不足ツールや構成差があれば停止するため、表示された原因を解消してから再度 `check` を行います。`cpio`不足などへの対応は[詳しい手順のエラー対応](README-ja.md#エラーで止まったとき)を参照してください
+
+### 4. 既存PHPを更新する
+
+`PRECHECK OK`を確認し、PHP-FPMを停止できる時間帯に実行します
+
+```bash
+sudo bash "$HOME/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh" \
+  apply "$HOME/php81-rpms-8.1.34-cve20261021.1"
+```
+
+スクリプトは再チェック後に `/var/backups/php81-cve-日時.XXXXXXXX/` へバックアップを保存し、PHP-FPM停止→8RPM更新→設定・拡張・起動確認を実行します
+既存PHP設定を引き継ぎ、Apacheの再起動は行いません。完了時の **`UPDATE COMPLETE`** と、表示されたバックアップ先・切り戻しコマンドを確認してください
+
+### 5. 更新結果とアプリの動作を確認する
+
+```bash
+rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}.%{ARCH}\n' \
+  php-cli php-common php-fpm php-gd php-mbstring php-mysqlnd php-pdo php-xml
+/usr/bin/php -v
+sudo systemctl is-active php-fpm httpd
+sudo journalctl -u php-fpm -n 50 --no-pager
+```
+
+8パッケージすべてが **`8.1.34-1.amzn2.cve20261021.1.x86_64`**、サービスがともに `active` であることを確認します
+`php -v`の **8.1.34表示は更新後も変わりません**。修正の適用はRPMのReleaseで判断します
+ブラウザで既存サイトの表示・ログイン維持・フォーム送信・少量のアップロードを確認し、複数サイトやFPMプールがある場合はそれぞれ確認します
+
+公式修正により、組み込み `session.upload_progress` は無効になり、対象のメモリ上限エラーなどではshutdown callbackが実行されません。通常セッションと通常アップロードは動作確認済みです
+`check`は本番アプリの互換性試験ではありません。[検証記録](VALIDATION-ja.md)と[互換性の説明](README-ja.md#修正の内容と互換性)も参照してください
+
+### 6. 必要な場合は旧RPMへ戻す
+
+```bash
+sudo bash "$HOME/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh" \
+  rollback "$HOME/php81-rpms-8.1.34-cve20261021.1"
+```
+
+元のAWS版 `8.1.34-1.amzn2` に戻し、PHP-FPMを起動します。切り戻しでもPHP-FPMを一時停止し、今回のCVE修正も外れます
+適用時に表示された `/var/backups/` 配下のコマンドも利用できます。切り戻し後は手順5のサービス・サイト確認を行い、RPMが元のReleaseに戻ったことを確認します
+設定ファイルをバックアップから一律復元する処理は含まれません。動作確認が終わるまで、展開済みバンドルとバックアップを保管してください
+
 ## ビルド
 
 必要な環境は x86_64 Linux とローカル Docker、目安として CPU 2コア分・メモリ4GiB・空き20GiBです
