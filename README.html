@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PHP 8.1 ローカルビルド・EC2適用手順</title>
+<style>
+:root{color-scheme:light;--ink:#183047;--muted:#52687b;--blue:#155fa0;--line:#d9e3ed;--paper:#fff;--soft:#f0f5fa}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:30px}body{margin:0;color:var(--ink);background:#f3f6fa;font:16px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif}
+a{color:var(--blue);text-underline-offset:3px;overflow-wrap:anywhere}.top{background:#143b60;color:#fff;padding:24px max(26px,calc((100vw - 1400px)/2));border-bottom:4px solid #59b3e5}.top strong{font-size:19px;letter-spacing:.04em}.top p{margin:6px 0 0;color:#d5e7f8;font-size:14px}
+.layout{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:280px minmax(0,1fr);gap:32px;padding:32px 26px 64px}.sidebar{position:sticky;top:24px;align-self:start;max-height:calc(100vh - 48px);overflow:auto;font-size:14px}.sidebar .label{color:var(--muted);font-size:12px;letter-spacing:.12em;margin:0 0 12px}.sidebar ol{margin:0;padding:0;list-style:none}.sidebar li{margin:0 0 5px}.sidebar a{display:block;padding:6px 10px;border-radius:6px;text-decoration:none;line-height:1.55}.sidebar a:hover{background:#e1edf8}.sidebar .note{margin:20px 0 0;padding:14px;background:#e7f0f8;border-radius:8px;color:#244e74;line-height:1.65}.print{margin-top:16px;padding:7px 16px;background:white;border:1px solid #b4c8dc;border-radius:6px;color:#234c70;cursor:pointer}
+main{min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:36px 42px;box-shadow:0 6px 22px #17354f06}h1{font-size:28px;line-height:1.5;letter-spacing:.01em;margin:0 0 16px}h2{font-size:23px;line-height:1.5;margin:48px 0 20px;padding-top:22px;border-top:1px solid var(--line);color:#124b7a}h3{font-size:19px;line-height:1.6;margin:30px 0 12px}h4{font-size:17px;margin:26px 0 10px}p{margin:14px 0}li{margin:7px 0}strong{font-weight:700}code{font-family:"Cascadia Code",Consolas,"Liberation Mono",monospace;font-size:.88em;background:#edf3f8;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}pre code{background:none;padding:0;border-radius:0;font-size:13px;line-height:1.7;overflow-wrap:normal}pre{margin:0;overflow:auto;padding:22px 20px;color:#edf4fc;background:#182b3d;tab-size:2}.code-wrap{position:relative;margin:18px 0 26px;border-radius:8px;overflow:hidden}.code-wrap pre{padding-top:42px}.copy{position:absolute;top:8px;right:10px;background:#304e68;border:1px solid #5e7890;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer}.copy:hover{background:#416884}.table-wrap{overflow:auto;margin:20px 0 26px;border:1px solid var(--line);border-radius:8px}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line);min-width:110px}th{background:#eaf1f8;font-weight:700;color:#234b6e}tr:last-child td{border-bottom:none}tbody tr:nth-child(even){background:#fafcfe}td code{font-size:12px;word-break:break-word}blockquote{border-left:4px solid #77a8d0;padding:8px 18px;margin:20px 0;background:#f3f8fc}hr{border:0;border-top:1px solid var(--line);margin:30px 0}
+@media(max-width:1000px){.layout{grid-template-columns:1fr;padding:20px 16px}.sidebar{position:static;max-height:none}.sidebar ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}.sidebar .note{margin-top:12px}main{padding:26px 22px}h1{font-size:25px}}
+@media(max-width:560px){body{font-size:15px}.top{padding:18px}.layout{padding:12px 8px}.sidebar{padding:10px}.sidebar ol{grid-template-columns:1fr}.sidebar li{margin:0}main{padding:24px 16px}h1{font-size:23px}h2{font-size:21px}th,td{padding:10px;min-width:100px}}
+@media print{body{background:white;font-size:11px}.top{color:#183047;background:white;padding:0 0 12px;border-bottom:2px solid #155fa0}.top p{color:#52687b}.layout{display:block;padding:0}.sidebar,.copy{display:none}main{border:0;box-shadow:none;padding:18px 0}h1{font-size:23px}h2{font-size:19px;margin-top:25px;break-after:avoid}h3,h4{break-after:avoid}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#183047;background:#f2f5f7}.code-wrap pre{padding:12px}pre code{font-size:9px}.table-wrap{overflow:visible}table{font-size:10px}a{color:inherit}}
+</style></head><body>
+<header class="top"><strong>PHP 8.1 · ローカルビルドキット</strong><p>Amazon Linux 2 / x86_64 — 手元で作成 → GitHubで受け渡し → EC2に適用</p></header>
+<div class="layout"><nav class="sidebar" aria-label="手順書の目次"><p class="label">CONTENTS / 目次</p><ol><li><a href="#section-1">先に確認すること</a></li><li><a href="#section-2">作業場所と順番</a></li><li><a href="#section-3">1. 手元の Docker を準備する</a></li><li><a href="#section-6">2. ZIP を手元に展開する</a></li><li><a href="#section-7">3. 手元でビルドする</a></li><li><a href="#section-10">4. GitHub Releases に完成ファイルを置く</a></li><li><a href="#section-11">5. 本番 EC2 で完成ファイルを取得する</a></li><li><a href="#section-15">6. 本番で導入前チェックする</a></li><li><a href="#section-16">7. 本番に適用する</a></li><li><a href="#section-17">8. 適用結果とサイトを確認する</a></li><li><a href="#section-18">9. 不具合時に元へ戻す</a></li><li><a href="#section-19">エラーで止まったとき</a></li><li><a href="#section-20">修正の内容と互換性</a></li><li><a href="#section-21">キット作成時の確認範囲</a></li><li><a href="#section-22">同梱ファイル</a></li><li><a href="#section-23">一次資料と固定した入力</a></li></ol><p class="note">最初の作業場所は<strong>手元のPC</strong>です。Amazon Linux 2のコンテナも、そのPC内で動かします。</p><button type="button" class="print" onclick="window.print()">印刷 / PDF保存</button></nav>
+<main><h1>PHP 8.1 セキュリティ修正：手元でビルドして EC2 に適用する</h1>
+<p>作成日：2026-10-22（日本時間）</p>
+<p><strong>コンパイルは、すべて手元の PC で行います。</strong> 手元の Docker 内に Amazon Linux 2 の作業環境を作り、修正済みの RPM を生成します。GitHub は完成ファイルの受け渡しに使い、本番 EC2 では検証とインストールを行います。ビルド用 EC2 や GitHub Actions は使いません。</p>
+<p>この ZIP は、手順書と実行スクリプトのセットです。<strong>コンパイル済み RPM は含まれていません。</strong> 最初に手元でビルドしてから、本番への手順に進みます。</p>
+<h2 id="section-1">先に確認すること</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>項目</th>
+<th>今回の対象・必要なもの</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>本番 OS</td>
+<td>Amazon Linux 2 / x86_64</td>
+</tr>
+<tr>
+<td>本番の現在の PHP</td>
+<td>AWS 版 <code>8.1.34-1.amzn2</code>、下記の８パッケージ</td>
+</tr>
+<tr>
+<td>更新後</td>
+<td>PHP 8.1 を維持。RPM の Release は <code>1.amzn2.cve20261021.1</code></td>
+</tr>
+<tr>
+<td>本番の PHP 実行方式</td>
+<td>Apache から PHP-FPM へ接続。FPM は <code>/usr/sbin/php-fpm</code></td>
+</tr>
+<tr>
+<td>手元の PC</td>
+<td>x86_64 の Ubuntu 機、または Windows＋WSL 2 の Ubuntu</td>
+</tr>
+<tr>
+<td>手元の Docker</td>
+<td>ローカルの Linux コンテナを一般ユーザーで操作できること</td>
+</tr>
+<tr>
+<td>計算資源の目安</td>
+<td>ビルドに CPU ２コア分・メモリ４ GiB、さらにホスト OS 用の余裕</td>
+</tr>
+<tr>
+<td>空き容量の目安</td>
+<td>作業フォルダと Docker の保存先に、合計 20 GiB 程度以上の余裕</td>
+</tr>
+<tr>
+<td>通信</td>
+<td>Docker イメージ、AWS の RPM、PHP の公式パッチ、GitHub に HTTPS 接続できること</td>
+</tr>
+<tr>
+<td>GitHub</td>
+<td>自分が管理できるリポジトリ。非公開でも利用可能</td>
+</tr>
+<tr>
+<td>本番操作</td>
+<td>いつもの SSH 接続先・秘密鍵と、<code>ec2-user</code> の sudo 権限</td>
+</tr>
+<tr>
+<td>作業時間</td>
+<td>本番への反映時に PHP-FPM を一時停止できる時間帯</td>
+</tr>
+</tbody></table></div>
+<p>資源・時間は実測した最低要件ではなく、環境準備のための目安です。ビルドには数十分〜数時間かかる可能性があります。Docker の仮想環境に割り当てるメモリと、PC 全体のメモリは別に考えてください。</p>
+<p>本番で確認済みの８パッケージは次のとおりです。追加の PHP パッケージがある場合、このキットは確認段階で停止します。</p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-text">php-cli    php-common    php-fpm    php-gd
+php-mbstring    php-mysqlnd    php-pdo    php-xml
+</code></pre></div>
+<h2 id="section-2">作業場所と順番</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>順番</th>
+<th>作業場所</th>
+<th>作業</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>手元の PC</td>
+<td>Docker の準備、ZIP の展開</td>
+</tr>
+<tr>
+<td>2</td>
+<td>手元の PC</td>
+<td><code>build-local.sh</code> でビルド・テスト</td>
+</tr>
+<tr>
+<td>3</td>
+<td>手元の PC のブラウザ</td>
+<td>完成した２ファイルを GitHub Releases に添付</td>
+</tr>
+<tr>
+<td>4</td>
+<td>本番 EC2</td>
+<td>完成ファイルを取得し、導入前チェック</td>
+</tr>
+<tr>
+<td>5</td>
+<td>本番 EC2</td>
+<td>RPM の更新、PHP-FPM の起動、サイト確認</td>
+</tr>
+</tbody></table></div>
+<p><strong>各コマンドの「実行場所」を確認してください。</strong> 手元の Ubuntu 機や WSL に本番用 RPM をインストールする操作はありません。本番で <code>build-local.sh</code> を動かす操作もありません。</p>
+<h2 id="section-3">1. 手元の Docker を準備する</h2>
+<h3 id="section-4">1-A. Ubuntu の PC を使う場合</h3>
+<p>まず、手元の Ubuntu にログインし、環境を確認します。BMAX-N100 などの Ubuntu 機を使う場合も、この手順です。</p>
+<p>実行場所：<strong>手元の Ubuntu PC</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">uname -m
+free -h
+df -h &quot;$HOME&quot;
+command -v docker || true
+</code></pre></div>
+<p><code>uname -m</code> は <code>x86_64</code> であることを確認します。このキットは ARM 機からのエミュレーションビルドには対応していません。</p>
+<p>すでに Docker があり、次が成功する場合はインストールを飛ばし、「2. ZIP を展開する」へ進んでください。</p>
+<p>実行場所：<strong>手元の Ubuntu PC</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">docker info --format &#39;{{.OSType}} {{.Architecture}}&#39;
+</code></pre></div>
+<p>Linux の Docker Engine が表示されることを確認します。権限エラーの場合は、後述の「一般ユーザーの Docker 操作権限」を確認します。</p>
+<h4>Docker が未導入の場合だけ実施</h4>
+<p>以下は、Docker 公式の Ubuntu 用 apt リポジトリを使う導入手順です。WSL で Docker Desktop を使う場合はこの節を実行せず、1-B へ進んでください。<a href="https://docs.docker.com/engine/install/ubuntu/">Docker 公式手順</a></p>
+<p>既存の <code>docker.io</code>、<code>podman-docker</code>、<code>containerd</code> などがある場合は、既存環境との競合を確認してから進めます。この手順には、それらを自動削除するコマンドを含めていません。</p>
+<p>実行場所：<strong>手元の Ubuntu PC</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">dpkg-query -W -f=&#39;${binary:Package}\t${db:Status-Abbrev}\n&#39; \
+  docker-ce docker.io podman-docker containerd containerd.io runc \
+  2&gt;/dev/null || true
+</code></pre></div>
+<p>未導入の状態を確認したら、次を順番に実行します。途中で失敗した場合は、後続のコマンドへ進まないでください。</p>
+<p>実行場所：<strong>手元の Ubuntu PC</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">sudo apt update
+sudo apt install ca-certificates curl unzip
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+sudo tee /etc/apt/sources.list.d/docker.sources &gt;/dev/null &lt;&lt;EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release &amp;&amp; printf &#39;%s&#39; &quot;${UBUNTU_CODENAME:-$VERSION_CODENAME}&quot;)
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+sudo systemctl start docker
+sudo docker info --format &#39;{{.OSType}} {{.Architecture}}&#39;
+</code></pre></div>
+<h4>一般ユーザーの Docker 操作権限</h4>
+<p>このキットの <code>build-local.sh</code> は、一般ユーザーで実行します。<code>sudo docker info</code> は成功するのに <code>docker info</code> が権限エラーになる場合は、Docker を使用する自分のアカウントを <code>docker</code> グループへ追加します。このグループは Docker を通じてホストを管理できる権限を持ちます。</p>
+<p>実行場所：<strong>手元の Ubuntu PC</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">sudo usermod -aG docker &quot;$(id -un)&quot;
+</code></pre></div>
+<p>その後、<strong>いったんログアウトし、ログインし直します。</strong> SSH の場合は接続を終了して再接続してください。再ログイン後、次が sudo なしで成功すれば準備完了です。</p>
+<p>実行場所：<strong>手元の Ubuntu PC／再ログイン後</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">docker info --format &#39;{{.OSType}} {{.Architecture}}&#39;
+</code></pre></div>
+<h3 id="section-5">1-B. Windows の PC を使う場合</h3>
+<p>Windows では <strong>Docker Desktop＋WSL 2 の Ubuntu</strong> を使います。以降の Bash コマンドは Ubuntu のターミナルで実行し、PowerShell には貼り付けません。</p>
+<ol>
+<li><a href="https://docs.docker.com/desktop/setup/install/windows-install/">Docker Desktop の公式要件</a>を確認します。ハードウェア仮想化、対応する Windows、PC 全体のメモリ容量が必要です。</li>
+<li>WSL が未導入の場合、管理者として開いた PowerShell で下記を実行し、求められたら再起動します。既存の WSL がある場合は、再インストールせず状態を確認します。</li>
+</ol>
+<p>実行場所：<strong>手元の Windows／管理者 PowerShell、WSL 未導入時のみ</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-powershell">wsl --install
+</code></pre></div>
+<ol start="3">
+<li>Ubuntu を初回起動し、Linux 用の一般ユーザーとパスワードを作成します。</li>
+<li>Docker Desktop を公式サイトからインストールして起動します。</li>
+<li>Docker Desktop の設定で WSL 2 のエンジンを使用し、<code>Settings → Resources → WSL Integration</code> で利用する Ubuntu を有効にします。Linux コンテナを使います。</li>
+<li>PowerShell で Ubuntu の <code>VERSION</code> が <code>2</code> であることを確認します。</li>
+</ol>
+<p>実行場所：<strong>手元の Windows／PowerShell</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-powershell">wsl --list --verbose
+</code></pre></div>
+<ol start="7">
+<li>Ubuntu のターミナルを開き、次を確認します。</li>
+</ol>
+<p>実行場所：<strong>手元の Windows 内の WSL Ubuntu</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">uname -m
+docker info --format &#39;{{.OSType}} {{.Architecture}}&#39;
+</code></pre></div>
+<p><code>x86_64</code> と Linux の Docker が確認できたら、次へ進みます。Docker Desktop と WSL 内への別の Docker Engine の二重導入は避け、すでに別構成がある場合は既存設定を確認してください。<a href="https://docs.docker.com/desktop/features/wsl/">WSL 連携の公式手順</a></p>
+<h2 id="section-6">2. ZIP を手元に展開する</h2>
+<p><code>php81-local-build-kit.zip</code> を手元の PC にダウンロードします。作業先は、Ubuntu または WSL Ubuntu のホームディレクトリ内を使います。例では <code>~/work/php81-local-build-kit/</code> です。</p>
+<p>Ubuntu のダウンロード先が <code>~/Downloads/</code> の場合の例です。実際の保存先が違う場合は ZIP のパスを変更してください。すでに同名フォルダがある場合は上書きせず、新しい作業場所を用意します。</p>
+<p>実行場所：<strong>手元の Ubuntu PC または WSL Ubuntu</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">mkdir -p &quot;$HOME/work&quot;
+unzip &quot;$HOME/Downloads/php81-local-build-kit.zip&quot; -d &quot;$HOME/work&quot;
+cd &quot;$HOME/work/php81-local-build-kit&quot;
+sha256sum --check --strict KIT-SHA256SUMS
+</code></pre></div>
+<p>WSL から Windows のダウンロードフォルダを参照する場合は、ZIP のパスを <code>/mnt/c/Users/Windowsのユーザー名/Downloads/php81-local-build-kit.zip</code> に変更します。パス全体を引用符で囲んで指定してください。<strong>展開先は <code>~/work</code> のままにします。</strong> <code>unzip</code> がない場合のみ、Ubuntu 側で <code>sudo apt install unzip</code> を実行します。</p>
+<p><code>KIT-SHA256SUMS</code> の各項目が <code>OK</code> になったことを確認します。これは ZIP 内のファイルが揃っているかを確認するものです。</p>
+<h2 id="section-7">3. 手元でビルドする</h2>
+<p>実行場所：<strong>手元の Ubuntu PC または WSL Ubuntu／キットのフォルダ</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">cd &quot;$HOME/work/php81-local-build-kit&quot;
+BUILD_JOBS=2 bash build-local.sh
+</code></pre></div>
+<p><strong><code>sudo bash build-local.sh</code> では実行しません。</strong> コンテナ内のユーザー作成や sudo の準備は、スクリプトが自動で行います。<code>build-rpms.sh</code> を Ubuntu ホスト上で直接実行する必要もありません。</p>
+<p>処理は次の順番です。</p>
+<ol>
+<li>Docker の接続先がローカルの Unix ソケットであること、Linux / x86_64 であることを確認。</li>
+<li>AWS 公式の <code>public.ecr.aws/amazonlinux/amazonlinux:2</code> を取得し、実際に取得したイメージの digest を記録。</li>
+<li>手元の Docker 内で Amazon Linux 2 のコンテナを起動。</li>
+<li>コンテナ内だけに開発ツールを追加し、一般ユーザーで AWS の PHP ソース RPM を展開。</li>
+<li>公式の PHP 8.1 修正パッチと、後述のテスト専用調整を追加し、RPM をビルドしてテスト。</li>
+<li>本番に必要な８個の新 RPM、切り戻し用の８個の旧 RPM、ソース・ログ・適用スクリプトをまとめる。</li>
+</ol>
+<p>既存の Ubuntu の PHP や本番 EC2 の PHP は、この段階では更新されません。Amazon Linux 2 は手元の PC 内で動きます。リモート Docker の <code>ssh://</code> や <code>tcp://</code> 接続先は、このキットでは拒否します。</p>
+<h3 id="section-8">負荷の設定</h3>
+<p>標準設定は、コンパイル２並列、コンテナの CPU 上限２コア分、メモリ上限４ GiB です。コンテナには上限を超える追加の swap 枠を割り当てません。PC 上で別の作業を続ける場合、CPU を１コア分に抑える例は次のとおりです。</p>
+<p>実行場所：<strong>手元の Ubuntu PC または WSL Ubuntu／ビルド開始前</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">BUILD_JOBS=1 BUILD_CPUS=1 BUILD_MEMORY=4g bash build-local.sh
+</code></pre></div>
+<p>メモリ不足でコンテナが停止した場合は、ホストと Docker 側に余裕があることを確認してから、たとえば <code>BUILD_MEMORY=6g</code> に増やします。メモリ不足を解消せずテストやチェックを無効にして進める手順にはしません。</p>
+<h3 id="section-9">ビルド成功時にできるファイル</h3>
+<p>最後に <code>LOCAL BUILD COMPLETED</code> と表示され、キットの <code>output/</code> に転送用の２ファイルができます。</p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-text">php81-rpms-8.1.34-cve20261021.1.tar.gz
+php81-rpms-8.1.34-cve20261021.1.tar.gz.sha256
+</code></pre></div>
+<p>実行場所：<strong>手元の Ubuntu PC または WSL Ubuntu／ビルド成功後</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">cd &quot;$HOME/work/php81-local-build-kit/output&quot;
+sha256sum --check --strict php81-rpms-8.1.34-cve20261021.1.tar.gz.sha256
+</code></pre></div>
+<p><code>OK</code> が出ることを確認します。<code>output/local-build-日時-.../</code> に起動・コンテナのログ、<code>output/php81-build.XXXXXXXX/</code> にソースや RPM ビルドの作業ファイルが残ります。<strong>失敗時もログを保持します。</strong> 同名の完成アーカイブがある状態で再実行すると、上書きせず停止します。</p>
+<h2 id="section-10">4. GitHub Releases に完成ファイルを置く</h2>
+<p>実行場所：<strong>手元の PC のブラウザ／GitHub</strong></p>
+<ol>
+<li>自分で管理するリポジトリを選びます。新しく作る場合の名前の例は <code>php81-al2-security-build</code> です。非公開でよく、新規作成時は README を追加して、ブランチに最初のコミットがある状態にします。</li>
+<li>リポジトリの <code>Releases</code> から <code>Draft a new release</code> を開きます。</li>
+<li>タグ名を <code>php81-8.1.34-cve20261021.1</code> として作成します。同じタグがすでにある場合は、その内容を確認し、別ビルドで上書きしません。</li>
+<li>タイトルの例を <code>PHP 8.1.34 / Amazon Linux 2 / security rebuild</code> とします。</li>
+<li>本番に入れる完成物として、<code>output/</code> の <code>.tar.gz</code> と <code>.tar.gz.sha256</code> の２ファイルを添付します。</li>
+<li>アップロードが完了したことを確認し、Release を公開します。非公開リポジトリ内の Release は、そのリポジトリにアクセスできる人が取得するものです。</li>
+</ol>
+<p>説明文は同梱の <code>RELEASE-NOTES-ja.txt</code> を使えます。「Amazon Linux 2 x86_64 用のローカル再ビルド、PHP 公式修正コミット、AWS 公式署名付きの修正版バイナリではないこと」を記載しています。ソース、パッチ、ログは完成アーカイブの中にも含まれます。GitHub が自動生成する <code>Source code (zip)</code> は、今回作った RPM のアーカイブとは別です。<a href="https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository">GitHub の Release 作成手順</a></p>
+<p>WSL で作成した <code>output/</code> を Windows のファイル選択画面で開く場合は、エクスプローラーから <code>\\wsl$\Ubuntu\home\Linuxのユーザー名\work\php81-local-build-kit\output</code> を参照します。<code>Ubuntu</code> の部分は、実際の WSL ディストリビューション名に置き換えます。</p>
+<h2 id="section-11">5. 本番 EC2 で完成ファイルを取得する</h2>
+<p>本番は、今回確認した <code>ip-172-31-40-13</code> のサーバーです。接続には普段使っている SSH ホスト名・鍵を使います。<code>172.31.40.13</code> はプライベート IP のため、手元から直接到達できるとは限りません。</p>
+<h3 id="section-12">5-A. 公開リポジトリの場合</h3>
+<p>下記の <code>OWNER/REPO</code> を実際の GitHub リポジトリに置き換えます。<code>latest</code> ではなく、今回作成したタグを指定して取得します。取得先に同名ファイルがある場合は、その内容を確認してから進めてください。</p>
+<p>実行場所：<strong>本番 EC2／SSH 接続後、公開リポジトリの場合</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">(
+  set -e
+  cd /home/ec2-user
+  php81_archive=&#39;php81-rpms-8.1.34-cve20261021.1.tar.gz&#39;
+  php81_release_url=&#39;https://github.com/OWNER/REPO/releases/download/php81-8.1.34-cve20261021.1&#39;
+  if [ -e &quot;$php81_archive&quot; ] || [ -e &quot;$php81_archive.sha256&quot; ]; then
+    printf &#39;%s\n&#39; &#39;同名ファイルがあります。既存の内容を確認してから続行してください。&#39; &gt;&amp;2
+    exit 1
+  fi
+  curl --fail --location --proto &#39;=https&#39; --proto-redir &#39;=https&#39; \
+    --tlsv1.2 --retry 3 --connect-timeout 20 --max-time 1800 \
+    --output &quot;$php81_archive&quot; &quot;$php81_release_url/$php81_archive&quot;
+  curl --fail --location --proto &#39;=https&#39; --proto-redir &#39;=https&#39; \
+    --tlsv1.2 --retry 3 --connect-timeout 20 --max-time 1800 \
+    --output &quot;$php81_archive.sha256&quot; &quot;$php81_release_url/$php81_archive.sha256&quot;
+  sha256sum --check --strict &quot;$php81_archive.sha256&quot;
+)
+</code></pre></div>
+<p><code>OK</code> が出たら「6. 本番で導入前チェックする」へ進みます。失敗した場合は、途中まで取得したファイルを完成物として使用しません。</p>
+<h3 id="section-13">5-B. 非公開リポジトリの場合</h3>
+<p>キットには、公開・非公開リポジトリの両方に対応する <code>download-release.py</code> を同梱しています。GitHub CLI は不要で、Python 3 の標準機能で取得します。補助スクリプトを本番の <code>/home/ec2-user/</code> に一度だけ送ります。</p>
+<p>下の鍵のパスと <code>PRODUCTION_SSH_HOST</code> を実際の値に置き換えてください。秘密鍵自体は転送しません。</p>
+<p>実行場所：<strong>手元の Ubuntu PC または WSL Ubuntu</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">cd &quot;$HOME/work/php81-local-build-kit&quot;
+scp -i /path/to/production-key.pem \
+  download-release.py \
+  ec2-user@PRODUCTION_SSH_HOST:/home/ec2-user/
+</code></pre></div>
+<p>本番で Python 3 が利用できることを確認します。</p>
+<p>実行場所：<strong>本番 EC2／SSH 接続後</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">python3 --version
+</code></pre></div>
+<p>Python 3 がない場合に限り、追加するパッケージを確認して導入できます。追加したくない場合は、後述の「直接渡す場合」を使います。</p>
+<p>実行場所：<strong>本番 EC2／Python 3 がない場合だけ</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">sudo yum --disablerepo=&#39;*&#39; --enablerepo=amzn2-core install python3
+</code></pre></div>
+<p>GitHub の fine-grained personal access token を用意します。手元のブラウザで <code>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</code> を開き、利用する所有者を選びます。<code>Repository access</code> は今回のリポジトリだけに限定し、<code>Contents: Read-only</code> 権限と有効期限を設定して作成します。組織側で承認が必要な場合は、承認後に使用します。<a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens">トークン作成の公式手順</a>／<a href="https://docs.github.com/en/rest/releases/assets">取得 API の必要権限</a></p>
+<p><code>OWNER/REPO</code> は、たとえば <code>YashubuStudio/php81-al2-security-build</code> のような形式です。ここに例示するリポジトリが作成済みという意味ではありません。</p>
+<p>実行場所：<strong>本番 EC2／非公開リポジトリから取得</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">cd /home/ec2-user
+python3 download-release.py \
+  --repo OWNER/REPO \
+  --tag php81-8.1.34-cve20261021.1 \
+  --output /home/ec2-user \
+  --private
+</code></pre></div>
+<p>トークンは、表示される非表示入力欄へ貼り付けます。コマンドの引数やファイルにトークンを書き込む必要はありません。公開リポジトリにこの補助スクリプトを使う場合は、<code>--private</code> を外します。</p>
+<p>取得先は <code>/home/ec2-user/</code> です。ここに <code>.tar.gz</code> と <code>.tar.gz.sha256</code> が揃ってから、次の手順へ進みます。取得エラーの場合は <code>apply</code> を実行しません。</p>
+<h3 id="section-14">GitHub を経由せず、直接渡す場合</h3>
+<p>同じ完成ファイルを、SCP や普段の SFTP ツールで転送しても構いません。直接転送する場合は、上の GitHub 取得手順を省略できます。</p>
+<p>実行場所：<strong>手元の Ubuntu PC または WSL Ubuntu</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">cd &quot;$HOME/work/php81-local-build-kit/output&quot;
+scp -i /path/to/production-key.pem \
+  php81-rpms-8.1.34-cve20261021.1.tar.gz \
+  php81-rpms-8.1.34-cve20261021.1.tar.gz.sha256 \
+  ec2-user@PRODUCTION_SSH_HOST:/home/ec2-user/
+</code></pre></div>
+<h2 id="section-15">6. 本番で導入前チェックする</h2>
+<p>この段階では、本番の PHP パッケージは交換しません。アーカイブを確認して展開し、既存設定と新 RPM の整合性を調べます。</p>
+<p>実行場所：<strong>本番 EC2／SSH 接続後</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">(
+  set -e
+  cd /home/ec2-user
+  sha256sum --check --strict php81-rpms-8.1.34-cve20261021.1.tar.gz.sha256
+  if [ -e php81-rpms-8.1.34-cve20261021.1 ]; then
+    printf &#39;%s\n&#39; &#39;展開先がすでにあります。既存の内容を確認してから続行してください。&#39; &gt;&amp;2
+    exit 1
+  fi
+  tar -xzf php81-rpms-8.1.34-cve20261021.1.tar.gz
+  cd php81-rpms-8.1.34-cve20261021.1
+  sudo bash install-rpms.sh check &quot;$PWD&quot;
+)
+</code></pre></div>
+<p>最後に <strong><code>PRECHECK OK</code></strong> が出たことを確認します。エラーで停止した場合は、本番適用へ進みません。</p>
+<p>チェックには、現在の８パッケージと版の一致、RPM の依存関係、旧 AWS RPM の署名、チェックサム、候補 CLI による現行の拡張・設定の読み込み、候補 PHP-FPM の構文検査が含まれます。候補 CLI の独立プロセスで、小さな PHP メモリ上限による修正後の動作確認も行います。</p>
+<p>同じ展開済みバンドルのチェックだけをやり直す場合は、次を使います。</p>
+<p>実行場所：<strong>本番 EC2／同じ完成バンドルを展開済みの場合</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
+  check /home/ec2-user/php81-rpms-8.1.34-cve20261021.1
+</code></pre></div>
+<h2 id="section-16">7. 本番に適用する</h2>
+<p><strong>ここから PHP-FPM を一時停止します。</strong> PHP を使うページが一時的にエラーになる可能性があるため、停止できる作業時間に実行してください。コンパイルを待つ時間の停止はありません。</p>
+<p>実行場所：<strong>本番 EC2／導入前チェック成功後</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
+  apply /home/ec2-user/php81-rpms-8.1.34-cve20261021.1
+</code></pre></div>
+<p>スクリプトは事前チェックをもう一度行い、設定・導入前のパッケージ一覧・切り戻し用 RPM を <code>/var/backups/php81-cve-日時.XXXXXXXX/</code> に保存してから、８個の RPM をまとめて更新します。その後、PHP-FPM の設定・起動・実行中バイナリを確認します。バックアップは root 専用です。</p>
+<p>現在の Apache は FPM に接続する構成なので、Apache の再起動処理は入っていません。PHP 設定も編集せず、既存の <code>/etc/php.d/zz-cve-2026-109618-109619.ini</code> を保持します。本番で依存パッケージを自動更新する処理はありません。</p>
+<h2 id="section-17">8. 適用結果とサイトを確認する</h2>
+<p>実行場所：<strong>本番 EC2／適用後</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">rpm -q php-cli php-common php-fpm php-gd php-mbstring php-mysqlnd php-pdo php-xml
+php -v
+sudo systemctl status php-fpm --no-pager
+sudo journalctl -u php-fpm -n 50 --no-pager
+</code></pre></div>
+<p>確認点は次のとおりです。</p>
+<ul>
+<li>８パッケージすべてが <code>8.1.34-1.amzn2.cve20261021.1.x86_64</code> になっている。</li>
+<li>PHP-FPM が <code>active</code> で動作している。</li>
+<li><code>php -v</code> は <strong>8.1.34 のままで正常</strong>。パッチを当てても PHP 本体の表示版番号は変わらない。</li>
+<li>ブラウザで既存サイトのページ表示、ログイン維持、フォーム送信、少量のファイルアップロードを確認できる。</li>
+<li>複数サイトや FPM プールがある場合、それぞれの代表的な PHP 処理が動く。</li>
+</ul>
+<p><code>check</code> の成功だけでは、アプリケーションの互換性までは確認できません。確認が終わるまで、手元の <code>output/</code> と本番のバックアップを残してください。</p>
+<h2 id="section-18">9. 不具合時に元へ戻す</h2>
+<p>この操作は元の AWS 版 <code>8.1.34-1.amzn2</code> に戻します。<strong>今回の２件の修正も外れる</strong>ため、不具合からの復旧に必要な場合に使用します。切り戻し時も PHP-FPM を一時停止します。</p>
+<p>実行場所：<strong>本番 EC2／切り戻しが必要な場合だけ</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">sudo bash /home/ec2-user/php81-rpms-8.1.34-cve20261021.1/install-rpms.sh \
+  rollback /home/ec2-user/php81-rpms-8.1.34-cve20261021.1
+</code></pre></div>
+<p>適用時に表示される <code>/var/backups/</code> 内のバックアップから戻すコマンドも使えます。画面に表示された正確なパスを使用してください。設定ファイルを一律に復元する操作は行いません。</p>
+<p>途中で新旧の RPM が混在した場合も、各パッケージが１件ずつ登録されていれば切り戻し対象です。同名パッケージの重複登録、RPM データベースの破損などは、追加調査が必要です。自動的にあらゆる失敗を修復するスクリプトではありません。</p>
+<h2 id="section-19">エラーで止まったとき</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>状況</th>
+<th>確認すること</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>docker: command not found</code></td>
+<td>手元に Docker があるか。WSL では Docker Desktop の WSL Integration が有効か</td>
+</tr>
+<tr>
+<td>Docker の permission denied</td>
+<td>Ubuntu で Docker の操作権限を設定し、ログインし直したか。キットは一般ユーザーで実行する</td>
+</tr>
+<tr>
+<td>リモート Docker を拒否された</td>
+<td><code>DOCKER_HOST</code>、<code>DOCKER_CONTEXT</code>、Docker context が手元の Docker を指しているか</td>
+</tr>
+<tr>
+<td>コンテナがメモリ不足で停止</td>
+<td>PC と Docker に余裕があるか。必要なら <code>BUILD_MEMORY</code> を増やして新しい作業環境で再実行する</td>
+</tr>
+<tr>
+<td>RPM のビルド・テスト失敗</td>
+<td><code>output/local-build-.../console.log</code>、<code>output/php81-build.XXXXXXXX/build-run.log</code>、<code>output/php81-build.XXXXXXXX/php81-rpms-8.1.34-cve20261021.1/logs/rpmbuild.log</code> を確認する</td>
+</tr>
+<tr>
+<td>完成アーカイブが既存のため停止</td>
+<td>以前の完成物を保管し、新しいフォルダへキットを展開してやり直す</td>
+</tr>
+<tr>
+<td>GitHub の 404 / 認証失敗</td>
+<td>OWNER/REPO、タグ、添付したファイル名、Release の公開状態、非公開リポジトリの読み取り権限</td>
+</tr>
+<tr>
+<td>本番で必要なツールがない</td>
+<td>エラーに表示されたツールだけを確認。<code>cpio</code> が不足する場合の例は下記</td>
+</tr>
+<tr>
+<td>本番のパッケージ構成が違う</td>
+<td>現在の <code>rpm -qa &#39;php*&#39;</code> を確認。このキットの前提と違う場合は、対象を見直す</td>
+</tr>
+<tr>
+<td>本番の依存関係・拡張・FPM 設定で停止</td>
+<td>エラー内容を解決して再チェック。<code>--force</code> や <code>--nodeps</code> で通さない</td>
+</tr>
+<tr>
+<td>本番の適用開始後に停止</td>
+<td>FPM の状態とエラーを確認し、表示された切り戻しコマンドで復旧するか判断する</td>
+</tr>
+</tbody></table></div>
+<p><code>cpio</code> だけが不足している場合の例です。表示される追加・更新内容を確認して実行します。</p>
+<p>実行場所：<strong>本番 EC2／<code>cpio</code> 不足と表示された場合だけ</strong></p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-bash">sudo yum --disablerepo=&#39;*&#39; --enablerepo=amzn2-core install cpio
+</code></pre></div>
+<p>ビルド失敗の調査では、ログの最後のエラー部分を共有すると原因を追いやすくなります。ビルド用のテストは失敗を無視せず停止する設定です。既存テストが環境条件で失敗する場合も、原因を確認してから対応します。公式修正による動作変更に対応するテスト期待値の調整は、別のテスト専用パッチとして同梱し、<code>TEST-CHANGES-ja.md</code> で説明しています。テストを一括でスキップするものではありません。</p>
+<h2 id="section-20">修正の内容と互換性</h2>
+<p>適用するのは、PHP 公式の PHP 8.1 向け修正コミット <code>1d7dec178a094e6e75b229ce22754045f8c6070a</code> です。対象は <code>CVE-2026-109618</code> と <code>CVE-2026-109619</code> です。PHP 8.2 へ切り替える手順ではありません。</p>
+<p>PHP 8.1 のままでも、修正に伴い次の動作変更があります。</p>
+<ul>
+<li>PHP 組み込みの <code>session.upload_progress</code> による進捗記録は、設定値に関係なく無効になります。通常のアップロードや通常のセッション全体が無効になるという意味ではありません。</li>
+<li>PHP のメモリ上限到達など、修正対象の異常終了経路では、そのプロセスが直ちに終了します。その場合は、通常の shutdown callback や終了時のセッション保存が実行されることを前提にできません。</li>
+<li>multipart フォームのヘッダー処理も変更されます。</li>
+</ul>
+<p>AWS の元ソースと PHP の修正パッチを使いますが、完成した RPM は <strong>自分の PC で作った未署名のローカルビルド</strong>です。AWS が配布・署名した修正版バイナリではありません。RPM 署名を必須とする独自運用がある場合、その設定を無効にするのではなく、自分の管理する鍵で署名するなど運用に合わせた対応が必要です。<a href="https://github.com/php/php-src/commit/1d7dec178a094e6e75b229ce22754045f8c6070a">PHP 公式コミット</a></p>
+<h2 id="section-21">キット作成時の確認範囲</h2>
+<p>AWS 公式ソース RPM と PHP 公式パッチの取得元・SHA-256、旧８ RPM の公式メタデータ、元の AWS パッチを含むソースへの修正パッチの適用、スクリプトの構文と処理順を確認しています。テスト期待値の追加調整は 11 件の PHPT に限定したテスト専用パッチとして分けており、PHP 本体の修正コードを追加するものではありません。テストのスキップや失敗の一括無視も追加していません。</p>
+<p><strong>この ZIP を作成した環境では Docker が利用できないため、Amazon Linux 2 コンテナ内での依存解決・コンパイル・全テスト・本番適用は未実施です。</strong> キット実行時にビルドとテストを行い、その後本番で導入前チェックを通します。サイトの実動作確認は最後に行います。</p>
+<h2 id="section-22">同梱ファイル</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>ファイル</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>START-HERE-ja.txt</code></td>
+<td>最初に読む短い案内</td>
+</tr>
+<tr>
+<td><code>README.html</code></td>
+<td>ブラウザで読めるこの手順書</td>
+</tr>
+<tr>
+<td><code>README-ja.md</code></td>
+<td>手順書の Markdown 版</td>
+</tr>
+<tr>
+<td><code>build-local.sh</code></td>
+<td>手元の Docker を確認し、ローカルビルドを開始</td>
+</tr>
+<tr>
+<td><code>container-build.sh</code></td>
+<td>コンテナ内のユーザーとツールを準備</td>
+</tr>
+<tr>
+<td><code>build-rpms.sh</code></td>
+<td>公式ソースとパッチから RPM を作成</td>
+</tr>
+<tr>
+<td><code>install-rpms.sh</code></td>
+<td>本番での check / apply / rollback</td>
+</tr>
+<tr>
+<td><code>download-release.py</code></td>
+<td>GitHub Releases の完成ファイルを取得（Python 3）</td>
+</tr>
+<tr>
+<td><code>tests-php81-cve.patch</code></td>
+<td>公式修正による動作変更に合わせたテスト期待値の調整</td>
+</tr>
+<tr>
+<td><code>TEST-CHANGES-ja.md</code></td>
+<td>テスト期待値を調整した理由と範囲</td>
+</tr>
+<tr>
+<td><code>RELEASE-NOTES-ja.txt</code></td>
+<td>GitHub Release の説明欄に使う文章</td>
+</tr>
+<tr>
+<td><code>VALIDATION-ja.txt</code></td>
+<td>キット作成時に確認したことと、未実施の検証</td>
+</tr>
+<tr>
+<td><code>KIT-SHA256SUMS</code></td>
+<td>キット内ファイルのチェックサム</td>
+</tr>
+</tbody></table></div>
+<h2 id="section-23">一次資料と固定した入力</h2>
+<ul>
+<li><a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/amazon_linux_container_image.html">Amazon Linux コンテナのローカル利用</a></li>
+<li><a href="https://docs.docker.com/engine/install/ubuntu/">Docker Engine / Ubuntu</a></li>
+<li><a href="https://docs.docker.com/desktop/setup/install/windows-install/">Docker Desktop / Windows</a></li>
+<li><a href="https://docs.docker.com/desktop/features/wsl/">Docker Desktop と WSL 2 の連携</a></li>
+<li><a href="https://learn.microsoft.com/en-us/windows/wsl/install">Microsoft：WSL のインストール</a></li>
+<li><a href="https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository">GitHub Releases の作成</a></li>
+<li><a href="https://docs.github.com/en/rest/releases/assets">GitHub Release assets API</a></li>
+<li><a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens">GitHub の personal access token</a></li>
+<li><a href="https://www.php.net/archive/2026.php">PHP 公式告知</a></li>
+<li><a href="https://github.com/php/php-src/commit/1d7dec178a094e6e75b229ce22754045f8c6070a">PHP 8.1 公式修正コミット</a></li>
+<li><a href="https://docs.aws.amazon.com/linux/al2/ug/amazon-linux-source-packages.html">AWS ソースパッケージ</a></li>
+<li><a href="https://alas.aws.amazon.com/AL2/ALAS2PHP8.1-2026-008.html">元の AWS PHP 8.1.34 のアドバイザリ</a></li>
+</ul>
+<p>元の AWS ソース RPM の SHA-256：</p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-text">268a00aa08e9e14679a834c3d5f841193968816e5d17e5d59bccbfd8a03a7394
+</code></pre></div>
+<p>公式 PHP パッチの SHA-256：</p>
+<div class="code-wrap"><button class="copy" type="button">コピー</button><pre><code class="language-text">c85ad0fddcbff7f2318617eeaa54d271135463b5bf70a01228447e3ed78de96e
+</code></pre></div>
+<p>旧８ RPM の URL・ハッシュは <code>build-rpms.sh</code> 内に固定されています。完成したバンドルにも <code>sources/upstream-downloads.tsv</code> として保存されます。新しい RPM と同梱ファイルの転送確認用ハッシュは、完成バンドルの <code>SHA256SUMS</code> に記録します。</p>
+</main></div>
+<script>
+document.querySelectorAll('.copy').forEach(button=>button.addEventListener('click',async()=>{
+const code=button.parentElement.querySelector('code');
+try{await navigator.clipboard.writeText(code.textContent);button.textContent='コピー済み';setTimeout(()=>button.textContent='コピー',1800);}
+catch(e){const range=document.createRange();range.selectNodeContents(code);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);button.textContent='選択済み・Ctrl+C';}
+}));
+</script></body></html>
